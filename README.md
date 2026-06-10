@@ -31,7 +31,26 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 
 ## Setup (one time)
 
-### 1. Install Ollama and pull the models
+### One-line install (Linux / WSL2)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/karthiknl0/LLM/main/setup/bootstrap.sh | bash
+```
+
+That clones the repo to `~/local-ai-hub` and runs the full setup —
+Ollama, the three models (~15 GB download), Python environment, and all
+dependencies. When it finishes:
+
+```bash
+cd ~/local-ai-hub && bash setup/start.sh
+```
+
+Prefer to see what you're running first? The script is
+`setup/bootstrap.sh`, and the manual steps below do the same thing.
+
+### Manual setup
+
+#### 1. Install Ollama and pull the models
 
 ```bash
 # Linux
@@ -43,7 +62,7 @@ ollama pull qwen2.5vl:7b       # vision: images & video frames (~6 GB)
 ollama pull nomic-embed-text   # embeddings for document search (~275 MB)
 ```
 
-### 2. Set up Python environment
+#### 2. Set up Python environment
 
 Requires Python 3.10+.
 
