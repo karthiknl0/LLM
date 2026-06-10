@@ -7,13 +7,27 @@ agent's code runs with your user account. It is only invoked from the
 Agent tab, and everything it does is visible in the reply.
 """
 
+import shutil
 import subprocess
 import sys
 
-from app.config import WORKSPACE_DIR
+from app.config import SKILLS_DIR, WORKSPACE_DIR
 
 TIMEOUT_SECONDS = 60
 MAX_OUTPUT_CHARS = 4000
+
+
+def _sync_skills() -> None:
+    """Copy saved skills into the workspace as a `skills` package so
+    agent code can `from skills.<name> import <name>`."""
+    try:
+        package = WORKSPACE_DIR / "skills"
+        package.mkdir(exist_ok=True)
+        (package / "__init__.py").touch()
+        for source in SKILLS_DIR.glob("*.py"):
+            shutil.copy(source, package / source.name)
+    except Exception as exc:
+        print(f"[sandbox] skill sync failed: {exc}")
 
 
 def run_python(code: str) -> str:
@@ -21,6 +35,7 @@ def run_python(code: str) -> str:
     files it created."""
     if not code.strip():
         return "No code provided."
+    _sync_skills()
 
     script = WORKSPACE_DIR / "_agent_script.py"
     script.write_text(code, encoding="utf-8")

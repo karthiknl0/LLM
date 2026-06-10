@@ -16,6 +16,7 @@ from app.rag import ask_documents, index_documents
 from app.repo import add_repo
 from app.research import deep_research, research
 from app.screen import capture_and_analyze
+from app.skills import list_skills
 from app.status import run_checks
 from app.team import team_run
 from app.videogen import generate_video
@@ -270,6 +271,19 @@ def build_app() -> gr.Blocks:
                 inputs=[video_prompt, video_seconds],
                 outputs=[video_out, video_status],
             )
+
+        with gr.Tab("Skills"):
+            gr.Markdown(
+                "Functions the agent taught itself by solving your tasks. "
+                "Each is a plain Python file in `data/skills/` — edit or "
+                "delete them freely. The agent imports relevant ones in "
+                "future `run_python` calls instead of rewriting them."
+            )
+            skills_refresh = gr.Button("Show skills", variant="primary")
+            skills_table = gr.Dataframe(
+                headers=["Skill", "Description"], interactive=False
+            )
+            skills_refresh.click(list_skills, outputs=skills_table)
 
         with gr.Tab("Status"):
             gr.Markdown(

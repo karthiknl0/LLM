@@ -14,6 +14,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Team mode (multi-agent) | Planner → tool-using workers → reviewer | Slower, for big tasks |
 | Run Python for you | Agent writes & executes code in `data/workspace/` | Fast |
 | Learn from corrections | Behavioral lessons stored alongside facts | Automatic |
+| Teach itself skills | Reusable functions saved from solved tasks | Automatic |
 | Deep research / deep answer | Multi-angle search + self-review passes | Slower, better |
 | Read your PDFs / Excel / code (RAG) | Local vector DB (ChromaDB) + Ollama embeddings | Fast |
 | Chat with any GitHub repo | Shallow clone + the same RAG pipeline | Fast |
@@ -178,6 +179,11 @@ into the model's context at the right time. This app does exactly that:
   asked about X, do Y") so it stops repeating mistakes.
 - On every new message, relevant memories are recalled and given to the
   model, so it remembers you across restarts.
+- When the agent solves a task with code, the reusable part is saved as
+  a named function in `data/skills/` (the **Skills** tab lists them).
+  Next time a similar task comes up, the agent is told to import the
+  saved skill instead of rewriting it — a personal standard library
+  built from your actual problems.
 - The **Memory** tab lets you review or wipe everything — it's your data,
   on your disk.
 
@@ -236,6 +242,7 @@ app/
   repo.py       clone GitHub repos into the document index
   research.py   web research with citations, plus deep-research mode
   sandbox.py    Python execution for the agent (data/workspace/)
+  skills.py     self-built skill library (data/skills/)
   screen.py     screen capture + vision analysis
   status.py     system health checks (Status tab)
   vision.py     image & video understanding

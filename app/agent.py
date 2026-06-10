@@ -8,7 +8,7 @@ from pathlib import Path
 
 import ollama
 
-from app import imagegen, rag, research, sandbox, screen
+from app import imagegen, rag, research, sandbox, screen, skills
 from app.chat import _log_turn
 from app.config import CHAT_MODEL, WORKSPACE_DIR
 from app.memory import recall, recall_lessons, remember
@@ -157,19 +157,33 @@ TOOL_STATUS = {
 }
 
 
+def _skill_hints(task: str) -> str:
+    """System-prompt addition listing saved skills relevant to a task."""
+    hints = skills.recall_skills(task) if task else []
+    if not hints:
+        return ""
+    return (
+        "\n\nSkills you saved from past tasks — import them inside "
+        "run_python instead of rewriting:\n" + "\n".join(f"- {h}" for h in hints)
+    )
+
+
 def run_with_tools(system: str, user: str, max_rounds: int = MAX_TOOL_ROUNDS) -> str:
     """One-shot tool-using conversation, for other modules (team mode):
     same tools as the Agent tab, no streaming."""
     messages = [
-        {"role": "system", "content": system},
+        {"role": "system", "content": system + _skill_hints(user)},
         {"role": "user", "content": user},
     ]
+    executed_code = []
+    reply = "(no answer)"
     for round_number in range(max_rounds + 1):
         response = ollama.chat(model=CHAT_MODEL, messages=messages, tools=TOOLS)
         msg = response["message"]
         tool_calls = getattr(msg, "tool_calls", None) or []
         if not tool_calls or round_number == max_rounds:
-            return msg["content"]
+            reply = msg["content"]
+            break
         messages.append(msg)
         for call in tool_calls:
             name = call["function"]["name"]
@@ -178,10 +192,13 @@ def run_with_tools(system: str, user: str, max_rounds: int = MAX_TOOL_ROUNDS) ->
                 result = TOOL_FUNCTIONS[name](**arguments)
             except Exception as exc:
                 result = f"Tool failed: {exc}"
+            if name == "run_python" and arguments.get("code"):
+                executed_code.append(arguments["code"])
             messages.append(
                 {"role": "tool", "content": str(result)[:8000], "name": name}
             )
-    return "(no answer)"
+    skills.maybe_learn(user, executed_code)
+    return reply
 
 
 def _describe_attachments(files: list[str], question: str) -> list[str]:
@@ -228,6 +245,7 @@ def agent_chat(message, history: list[dict], deep_answer: bool = False):
     if lessons:
         system += "\n\nStanding instructions learned from past corrections:\n"
         system += "\n".join(f"- {lesson}" for lesson in lessons)
+    system += _skill_hints(message)
 
     messages = [{"role": "system", "content": system}]
     messages += [
@@ -245,6 +263,7 @@ def agent_chat(message, history: list[dict], deep_answer: bool = False):
     messages.append({"role": "user", "content": user_content})
 
     reply = "(no answer)"
+    executed_code = []
     for _round in range(MAX_TOOL_ROUNDS + 1):
         response = ollama.chat(model=CHAT_MODEL, messages=messages, tools=TOOLS)
         msg = response["message"]
@@ -264,6 +283,8 @@ def agent_chat(message, history: list[dict], deep_answer: bool = False):
                 result = TOOL_FUNCTIONS[name](**arguments)
             except Exception as exc:
                 result = f"Tool failed: {exc}"
+            if name == "run_python" and arguments.get("code"):
+                executed_code.append(arguments["code"])
             messages.append(
                 {"role": "tool", "content": str(result)[:8000], "name": name}
             )
@@ -294,3 +315,4 @@ def agent_chat(message, history: list[dict], deep_answer: bool = False):
 
     _log_turn(message, reply)
     remember(message, reply)
+    skills.maybe_learn(message, executed_code)
