@@ -11,6 +11,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 |---|---|---|
 | Chat & coding help | Qwen 3 14B via Ollama | Fast, fully on GPU |
 | Agent mode (auto tool use) | Native tool calling: docs, web, Python, images | Fast |
+| Team mode (multi-agent) | Planner → tool-using workers → reviewer | Slower, for big tasks |
 | Run Python for you | Agent writes & executes code in `data/workspace/` | Fast |
 | Learn from corrections | Behavioral lessons stored alongside facts | Automatic |
 | Deep research / deep answer | Multi-angle search + self-review passes | Slower, better |
@@ -92,6 +93,11 @@ command to fix each.
   with a 60-second timeout, confined to the workspace folder by
   convention). Tick **Deep answer** to make it review its own draft
   before replying.
+- **Team** — multi-agent mode for big jobs: a planner agent splits your
+  task into subtasks, worker agents execute each one with the full
+  toolset, and a reviewer agent merges the results into one answer.
+  The roles run sequentially on your one GPU (parallel agent frameworks
+  like CrewAI assume cloud APIs) — you watch the plan execute live.
 - **Chat** — plain conversation with the local model, no tools.
 - **Voice** — record a question with your mic, hear the answer spoken back.
   (Spoken replies need `espeak-ng`: `sudo apt install espeak-ng` on Linux.)
@@ -178,6 +184,7 @@ app/
   main.py       Gradio UI (tabs for each capability)
   config.py     model names & paths — change models here
   agent.py      agent mode: chat with automatic tool use
+  team.py       multi-agent team: planner → workers → reviewer
   chat.py       chat with the local LLM
   rag.py        document indexing & retrieval, with reranking
   research.py   web research with citations, plus deep-research mode
