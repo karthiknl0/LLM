@@ -24,6 +24,13 @@ from app.config import (
 _client = chromadb.PersistentClient(path=str(VECTOR_DB_DIR))
 COLLECTION_NAME = "documents"
 
+# noise directories inside cloned repos — never worth indexing
+SKIP_DIRS = {
+    ".git", ".hg", ".svn", "node_modules", "__pycache__",
+    ".venv", "venv", "dist", "build", ".idea", ".vscode",
+}
+MAX_FILE_BYTES = 1_000_000  # skip huge files (minified bundles, data dumps)
+
 _reranker = None
 
 
@@ -98,7 +105,13 @@ def index_documents() -> str:
         pass
     collection = _client.create_collection(COLLECTION_NAME)
 
-    files = [p for p in sorted(DOCUMENTS_DIR.rglob("*")) if p.is_file()]
+    files = [
+        p
+        for p in sorted(DOCUMENTS_DIR.rglob("*"))
+        if p.is_file()
+        and not (set(p.parts) & SKIP_DIRS)
+        and p.stat().st_size <= MAX_FILE_BYTES
+    ]
     if not files:
         return f"No files found. Put PDFs, Excel files, or code into {DOCUMENTS_DIR}"
 

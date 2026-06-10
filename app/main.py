@@ -13,6 +13,7 @@ from app.imagegen import generate_image
 from app.memory import clear_memories, list_memories
 from app.personas import DEFAULT_NAME, list_personas
 from app.rag import ask_documents, index_documents
+from app.repo import add_repo
 from app.research import deep_research, research
 from app.screen import capture_and_analyze
 from app.status import run_checks
@@ -132,6 +133,21 @@ def build_app() -> gr.Blocks:
             )
             doc_answer = gr.Markdown()
             doc_question.submit(ask_documents, inputs=doc_question, outputs=doc_answer)
+
+            gr.Markdown(
+                "**Chat with a codebase** — paste a GitHub URL: it is "
+                "shallow-cloned into your documents and indexed, then ask "
+                "about it above."
+            )
+            with gr.Row():
+                repo_url = gr.Textbox(
+                    label="Repository URL",
+                    placeholder="https://github.com/owner/repo",
+                    scale=4,
+                )
+                repo_btn = gr.Button("Clone & index", scale=1)
+            repo_status = gr.Markdown()
+            repo_btn.click(add_repo, inputs=repo_url, outputs=repo_status)
 
         with gr.Tab("Research"):
             gr.Markdown(
