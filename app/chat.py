@@ -11,6 +11,7 @@ import ollama
 
 from app.config import CHAT_MODEL, CHATLOG_DIR
 from app.memory import recall, recall_lessons, remember
+from app.personas import DEFAULT_NAME, get_prompt
 
 
 def _log_turn(user_message: str, assistant_reply: str) -> None:
@@ -28,10 +29,10 @@ SYSTEM_PROMPT = (
 )
 
 
-def stream_chat(message: str, history: list[dict]):
+def stream_chat(message: str, history: list[dict], persona: str = DEFAULT_NAME):
     """Yield the assistant reply incrementally. `history` is a list of
     {"role", "content"} dicts as provided by gradio's chat component."""
-    system = SYSTEM_PROMPT
+    system = get_prompt(persona) or SYSTEM_PROMPT
     memories = recall(message)
     if memories:
         system += "\n\nThings you remember about the user from past chats:\n"

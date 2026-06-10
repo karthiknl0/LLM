@@ -8,6 +8,7 @@ data/vectordb/
 data/chatlogs/
 data/training/
 data/workspace/
+data/personas/
 outputs/*
 !data/documents/.gitkeep
 !outputs/.gitkeep

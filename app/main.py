@@ -11,6 +11,7 @@ from app.chat import stream_chat
 from app.config import CHAT_MODEL, DOCUMENTS_DIR, VISION_MODEL
 from app.imagegen import generate_image
 from app.memory import clear_memories, list_memories
+from app.personas import DEFAULT_NAME, list_personas
 from app.rag import ask_documents, index_documents
 from app.research import deep_research, research
 from app.screen import capture_and_analyze
@@ -67,8 +68,22 @@ def build_app() -> gr.Blocks:
             team_btn.click(team_run, inputs=team_task, outputs=team_out)
 
         with gr.Tab("Chat"):
-            gr.Markdown(f"Model: `{CHAT_MODEL}` (local via Ollama, no tools)")
-            gr.ChatInterface(fn=stream_chat, type="messages")
+            gr.Markdown(
+                f"Model: `{CHAT_MODEL}` (local via Ollama, no tools). Pick "
+                "a specialist persona below — or add your own as .md files "
+                "in `data/personas/`."
+            )
+            gr.ChatInterface(
+                fn=stream_chat,
+                type="messages",
+                additional_inputs=[
+                    gr.Dropdown(
+                        choices=list_personas(),
+                        value=DEFAULT_NAME,
+                        label="Persona",
+                    )
+                ],
+            )
 
         with gr.Tab("Voice"):
             gr.Markdown(
