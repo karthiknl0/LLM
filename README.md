@@ -23,6 +23,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Plug-in tools via MCP | Any Model Context Protocol server (data/mcp.json) | Depends on server |
 | Task scratchpad | Agent takes notes that survive context compaction | Automatic |
 | Playbook library | Authored workflows loaded on demand (data/playbooks/) | Automatic |
+| Prompt evals | Graded test sets + LLM-as-judge (Evals tab) | On demand |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
 | Look at your screen | Screenshot + vision model | Fast, stays on your machine |
@@ -331,6 +332,7 @@ app/
   mcp_client.py MCP plug-in tools for the agent (data/mcp.json)
   notes.py      agent scratchpad for long tasks (survives compaction)
   playbooks.py  authored workflows, loaded on demand (data/playbooks/)
+  evals.py      local prompt evaluations (Evals tab, data/evals/)
   research.py   web research with citations, plus deep-research mode
   browser.py    headless-browser verification of web pages
   sandbox.py    Python execution for the agent (data/workspace/)
