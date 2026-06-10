@@ -15,6 +15,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
 | Voice chat (speak & listen) | Whisper + Kokoro TTS | Fast, fully local |
 | Transcribe audio/video files | Whisper, timestamped | Fast |
+| Web research with citations | DuckDuckGo + local LLM | Fast (needs internet) |
 | Generate images | Stable Diffusion XL Turbo | ~2–5 s per image |
 | Generate videos | LTX-Video | Experimental — short clips, several minutes each |
 | Remember you across sessions | Local long-term memory (ChromaDB) | Automatic |
@@ -71,6 +72,10 @@ Open http://localhost:7860 in your browser.
   (Spoken replies need `espeak-ng`: `sudo apt install espeak-ng` on Linux.)
 - **Transcribe** — drop in a meeting recording, voice note, or video and
   get a timestamped transcript.
+- **Research** — Perplexity-style web answers: your local model searches
+  DuckDuckGo, reads the top pages, and replies with `[n]` citations.
+  The only feature that uses the internet — no API keys involved, and
+  the reasoning still happens on your GPU.
 - **Documents** — drop PDFs, Excel files, and code into `data/documents/`,
   click *Index documents*, then ask questions about them. Behind the
   scenes, 20 candidate passages are fetched and a local reranker model
@@ -114,6 +119,20 @@ your style and becomes `my-ai` in Ollama. Full guide: `finetune/README.md`.
 - Want a bigger brain? `ollama pull qwen3:32b` runs split across GPU+RAM —
   smarter but noticeably slower.
 
+## Bonus: use your model as a coding agent
+
+Your local model can power an AI pair-programmer in any repo — no code
+changes needed, it just talks to Ollama:
+
+```bash
+pip install aider-chat
+cd your-project
+aider --model ollama/qwen3:14b
+```
+
+Or install the **Continue** extension in VS Code and point it at Ollama
+for local autocomplete and chat inside your editor.
+
 ## Project layout
 
 ```
@@ -122,6 +141,7 @@ app/
   config.py     model names & paths — change models here
   chat.py       chat with the local LLM
   rag.py        document indexing & retrieval, with reranking
+  research.py   web research with citations (DuckDuckGo + local LLM)
   vision.py     image & video understanding
   voice.py      voice chat (Whisper + Kokoro TTS) & file transcription
   imagegen.py   Stable Diffusion XL Turbo image generation

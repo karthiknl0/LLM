@@ -11,6 +11,7 @@ from app.config import CHAT_MODEL, DOCUMENTS_DIR, VISION_MODEL
 from app.imagegen import generate_image
 from app.memory import clear_memories, list_memories
 from app.rag import ask_documents, index_documents
+from app.research import research
 from app.videogen import generate_video
 from app.vision import analyze_media
 from app.voice import transcribe_file, voice_chat
@@ -71,6 +72,21 @@ def build_app() -> gr.Blocks:
             )
             doc_answer = gr.Markdown()
             doc_question.submit(ask_documents, inputs=doc_question, outputs=doc_answer)
+
+        with gr.Tab("Research"):
+            gr.Markdown(
+                "Ask about anything on the web — your local model searches, "
+                "reads the top pages, and answers with citations. The only "
+                "tab that uses the internet (free search, no API keys)."
+            )
+            research_question = gr.Textbox(
+                label="Research question",
+                placeholder="e.g. What are the best open-source TTS models in 2026?",
+            )
+            research_btn = gr.Button("Research", variant="primary")
+            research_answer = gr.Markdown()
+            research_question.submit(research, inputs=research_question, outputs=research_answer)
+            research_btn.click(research, inputs=research_question, outputs=research_answer)
 
         with gr.Tab("Vision"):
             gr.Markdown(f"Model: `{VISION_MODEL}` — upload an image or a video.")
