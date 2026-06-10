@@ -5,6 +5,11 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+echo "==> Installing system packages for voice features (best effort)"
+if command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get install -y espeak-ng ffmpeg || true
+fi
+
 echo "==> Installing Ollama (skipped if already installed)"
 if ! command -v ollama >/dev/null 2>&1; then
     curl -fsSL https://ollama.com/install.sh | sh

@@ -5,9 +5,15 @@ __pycache__/
 # user data and generated content stay local
 data/documents/*
 data/vectordb/
+data/chatlogs/
+data/training/
 outputs/*
 !data/documents/.gitkeep
 !outputs/.gitkeep
+
+# fine-tuning artifacts (large)
+finetune/adapter/
+finetune/merged/
 
 # model caches
 .cache/

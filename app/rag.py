@@ -15,12 +15,35 @@ from app.config import (
     CODE_EXTENSIONS,
     DOCUMENTS_DIR,
     EMBED_MODEL,
+    RERANK_CANDIDATES,
+    RERANKER_MODEL,
     TOP_K,
     VECTOR_DB_DIR,
 )
 
 _client = chromadb.PersistentClient(path=str(VECTOR_DB_DIR))
 COLLECTION_NAME = "documents"
+
+_reranker = None
+
+
+def _rerank(question: str, docs: list[str], sources: list[str]):
+    """Re-score candidate chunks with a cross-encoder so only the most
+    relevant reach the LLM. Falls back to embedding order if the
+    reranker can't load."""
+    global _reranker
+    try:
+        if _reranker is None:
+            from sentence_transformers import CrossEncoder
+
+            _reranker = CrossEncoder(RERANKER_MODEL)
+        scores = _reranker.predict([(question, doc) for doc in docs])
+        order = sorted(range(len(docs)), key=lambda i: scores[i], reverse=True)
+        ranked = order[:TOP_K]
+        return [docs[i] for i in ranked], [sources[i] for i in ranked]
+    except Exception as exc:
+        print(f"[rag] reranker unavailable, using embedding order: {exc}")
+        return docs[:TOP_K], sources[:TOP_K]
 
 
 def _read_pdf(path: Path) -> str:
@@ -109,12 +132,14 @@ def ask_documents(question: str) -> str:
         return "No index yet — click 'Index documents' first."
 
     result = collection.query(
-        query_embeddings=_embed([question]), n_results=TOP_K
+        query_embeddings=_embed([question]),
+        n_results=min(RERANK_CANDIDATES, collection.count()),
     )
     docs = result["documents"][0]
     sources = [m["source"] for m in result["metadatas"][0]]
     if not docs:
         return "Nothing relevant found in your documents."
+    docs, sources = _rerank(question, docs, sources)
 
     context = "\n\n---\n\n".join(
         f"[{src}]\n{doc}" for src, doc in zip(sources, docs)
