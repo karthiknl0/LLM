@@ -63,22 +63,34 @@ bash setup/install.sh
 ## Run it
 
 ```bash
-ollama serve                     # if not already running as a service
-python -m app.main
+bash setup/start.sh              # starts Ollama too, if needed
 ```
 
-Open http://localhost:7860 in your browser.
+Open http://localhost:7860 in your browser. (Or manually: `ollama serve`
+then `python -m app.main`.)
+
+**From your phone:** `bash setup/start.sh --lan` makes the hub reachable
+on your home WiFi at `http://<your-pc-ip>:7860`. Set a password first if
+others use your network: `AIHUB_PASSWORD=secret bash setup/start.sh --lan`
+(login username is `me`). Your AI in your pocket — still running entirely
+on your desktop.
+
+If something doesn't work, the **Status** tab diagnoses it: Ollama not
+running, models not pulled, GPU not visible, low disk — with the exact
+command to fix each.
 
 ## Using it
 
 - **Agent** — the smartest way to use the hub: one chat where the model
   itself decides when to search your documents, research the web, run
   Python, or generate an image. You'll see *Searching your documents…*
-  style notes while it works. Drop data files into `data/workspace/` and
-  ask for analysis — the model writes and runs real code instead of
-  guessing at numbers (note: that code runs on your machine, with a
-  60-second timeout, confined to the workspace folder by convention).
-  Tick **Deep answer** to make it review its own draft before replying.
+  style notes while it works. Attach images or videos with 📎 and it
+  consults the vision model; attach CSVs or other data files and they
+  land in `data/workspace/` where the model writes and runs real code
+  instead of guessing at numbers (note: that code runs on your machine,
+  with a 60-second timeout, confined to the workspace folder by
+  convention). Tick **Deep answer** to make it review its own draft
+  before replying.
 - **Chat** — plain conversation with the local model, no tools.
 - **Voice** — record a question with your mic, hear the answer spoken back.
   (Spoken replies need `espeak-ng`: `sudo apt install espeak-ng` on Linux.)
@@ -166,6 +178,7 @@ app/
   rag.py        document indexing & retrieval, with reranking
   research.py   web research with citations, plus deep-research mode
   sandbox.py    Python execution for the agent (data/workspace/)
+  status.py     system health checks (Status tab)
   vision.py     image & video understanding
   voice.py      voice chat (Whisper + Kokoro TTS) & file transcription
   imagegen.py   Stable Diffusion XL Turbo image generation
