@@ -17,6 +17,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Read your PDFs / Excel / code (RAG) | Local vector DB (ChromaDB) + Ollama embeddings | Fast |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
+| Look at your screen | Screenshot + vision model | Fast, stays on your machine |
 | Voice chat (speak & listen) | Whisper + Kokoro TTS | Fast, fully local |
 | Transcribe audio/video files | Whisper, timestamped | Fast |
 | Web research with citations | DuckDuckGo + local LLM | Fast (needs internet) |
@@ -106,6 +107,9 @@ command to fix each.
   scenes, 20 candidate passages are fetched and a local reranker model
   picks the best 5 — noticeably better answers than plain vector search.
 - **Vision** — upload an image or video and ask anything about it.
+- **Screen** — one click captures your screen and the vision model
+  answers questions about it ("what does this error mean?"). Also
+  available in the Agent: just say "look at my screen and …".
 - **Generate Image** — type a prompt, get an image in seconds.
   Saved to `outputs/`.
 - **Generate Video** — experimental. Short clips (~3–5 s). The model is
@@ -178,6 +182,7 @@ app/
   rag.py        document indexing & retrieval, with reranking
   research.py   web research with citations, plus deep-research mode
   sandbox.py    Python execution for the agent (data/workspace/)
+  screen.py     screen capture + vision analysis
   status.py     system health checks (Status tab)
   vision.py     image & video understanding
   voice.py      voice chat (Whisper + Kokoro TTS) & file transcription

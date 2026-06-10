@@ -8,7 +8,7 @@ from pathlib import Path
 
 import ollama
 
-from app import imagegen, rag, research, sandbox
+from app import imagegen, rag, research, sandbox, screen
 from app.chat import _log_turn
 from app.config import CHAT_MODEL, WORKSPACE_DIR
 from app.memory import recall, recall_lessons, remember
@@ -25,8 +25,9 @@ SYSTEM_PROMPT = (
     "and run_python for any calculation, data analysis, or file "
     "processing — never do arithmetic in your head. If run_python returns "
     "an error, read the error message, fix the code, and run it again — "
-    "don't give up after one failure. Answer directly from your own "
-    "knowledge when no tool is needed. Be concise and practical."
+    "don't give up after one failure. Use look_at_screen when the user "
+    "refers to what is currently on their screen. Answer directly from "
+    "your own knowledge when no tool is needed. Be concise and practical."
 )
 
 TOOLS = [
@@ -87,6 +88,27 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "look_at_screen",
+            "description": (
+                "Capture the user's current screen and analyze it with the "
+                "vision model. Use when the user asks about something on "
+                "their screen right now (an error, a window, a page)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "question": {
+                        "type": "string",
+                        "description": "What to look for on the screen",
+                    }
+                },
+                "required": ["question"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "generate_image",
             "description": "Create an image from a text prompt and save it to disk.",
             "parameters": {
@@ -123,6 +145,7 @@ TOOL_FUNCTIONS = {
     "web_research": _run_web_research,
     "generate_image": _run_generate_image,
     "run_python": sandbox.run_python,
+    "look_at_screen": screen.look_at_screen,
 }
 
 TOOL_STATUS = {
@@ -130,6 +153,7 @@ TOOL_STATUS = {
     "web_research": "Researching the web",
     "generate_image": "Generating image",
     "run_python": "Running Python code",
+    "look_at_screen": "Looking at your screen",
 }
 
 

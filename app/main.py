@@ -13,6 +13,7 @@ from app.imagegen import generate_image
 from app.memory import clear_memories, list_memories
 from app.rag import ask_documents, index_documents
 from app.research import deep_research, research
+from app.screen import capture_and_analyze
 from app.status import run_checks
 from app.videogen import generate_video
 from app.vision import analyze_media
@@ -145,6 +146,26 @@ def build_app() -> gr.Blocks:
                 analyze_media,
                 inputs=[media_file, vision_question],
                 outputs=vision_answer,
+            )
+
+        with gr.Tab("Screen"):
+            gr.Markdown(
+                "Capture this computer's screen and ask the vision model "
+                "about it — errors, windows, anything you're looking at. "
+                "The screenshot never leaves your machine. (Captures the "
+                "desktop running the app, even when you browse from a phone.)"
+            )
+            screen_question = gr.Textbox(
+                label="Question (optional)",
+                placeholder="What does this error message mean?",
+            )
+            screen_btn = gr.Button("Capture & analyze", variant="primary")
+            screen_image = gr.Image(label="Screenshot")
+            screen_answer = gr.Markdown()
+            screen_btn.click(
+                capture_and_analyze,
+                inputs=screen_question,
+                outputs=[screen_image, screen_answer],
             )
 
         with gr.Tab("Generate Image"):
