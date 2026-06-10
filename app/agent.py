@@ -8,7 +8,7 @@ from pathlib import Path
 
 import ollama
 
-from app import gittools, imagegen, rag, research, sandbox, screen, skills
+from app import gittools, imagegen, mcp_client, rag, research, sandbox, screen, skills
 from app.browser import verify_in_browser
 from app.chat import _log_turn
 from app.config import CHAT_MODEL, WORKSPACE_DIR
@@ -275,6 +275,15 @@ TOOL_STATUS = {
 }
 
 
+def _all_tools() -> list[dict]:
+    """Built-in tools plus any from configured MCP servers."""
+    return TOOLS + mcp_client.mcp_tools()
+
+
+def _all_functions() -> dict:
+    return {**TOOL_FUNCTIONS, **mcp_client.mcp_functions()}
+
+
 def _skill_hints(task: str) -> str:
     """System-prompt addition listing saved skills relevant to a task."""
     hints = skills.recall_skills(task) if task else []
@@ -293,10 +302,11 @@ def run_with_tools(system: str, user: str, max_rounds: int = MAX_TOOL_ROUNDS) ->
         {"role": "system", "content": system + _skill_hints(user)},
         {"role": "user", "content": user},
     ]
+    tools, functions = _all_tools(), _all_functions()
     executed_code = []
     reply = "(no answer)"
     for round_number in range(max_rounds + 1):
-        response = ollama.chat(model=CHAT_MODEL, messages=messages, tools=TOOLS)
+        response = ollama.chat(model=CHAT_MODEL, messages=messages, tools=tools)
         msg = response["message"]
         tool_calls = getattr(msg, "tool_calls", None) or []
         if not tool_calls or round_number == max_rounds:
@@ -307,7 +317,7 @@ def run_with_tools(system: str, user: str, max_rounds: int = MAX_TOOL_ROUNDS) ->
             name = call["function"]["name"]
             arguments = dict(call["function"]["arguments"] or {})
             try:
-                result = TOOL_FUNCTIONS[name](**arguments)
+                result = functions[name](**arguments)
             except Exception as exc:
                 result = f"Tool failed: {exc}"
             if name == "run_python" and arguments.get("code"):
@@ -378,10 +388,11 @@ def agent_chat(message, history: list[dict], deep_answer: bool = False):
         user_content = (message + "\n\n" + "\n".join(notes)).strip()
     messages.append({"role": "user", "content": user_content})
 
+    tools, functions = _all_tools(), _all_functions()
     reply = "(no answer)"
     executed_code = []
     for _round in range(MAX_TOOL_ROUNDS + 1):
-        response = ollama.chat(model=CHAT_MODEL, messages=messages, tools=TOOLS)
+        response = ollama.chat(model=CHAT_MODEL, messages=messages, tools=tools)
         msg = response["message"]
         tool_calls = getattr(msg, "tool_calls", None) or []
 
@@ -393,10 +404,10 @@ def agent_chat(message, history: list[dict], deep_answer: bool = False):
         for call in tool_calls:
             name = call["function"]["name"]
             arguments = dict(call["function"]["arguments"] or {})
-            steps.append(f"*{TOOL_STATUS.get(name, name)}…*")
+            steps.append(f"*{TOOL_STATUS.get(name, 'Using ' + name.replace('_', ' '))}…*")
             yield "\n\n".join(steps)
             try:
-                result = TOOL_FUNCTIONS[name](**arguments)
+                result = functions[name](**arguments)
             except Exception as exc:
                 result = f"Tool failed: {exc}"
             if name == "run_python" and arguments.get("code"):

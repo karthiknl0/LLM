@@ -20,6 +20,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Chat with any GitHub repo | Shallow clone + the same RAG pipeline | Fast |
 | Edit & push code to GitHub | Guarded git tools — ai/* branches only, you merge via PR | Supervised |
 | Verify web pages in a browser | Headless Chromium + vision model + console errors | Fast |
+| Plug-in tools via MCP | Any Model Context Protocol server (data/mcp.json) | Depends on server |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
 | Look at your screen | Screenshot + vision model | Fast, stays on your machine |
@@ -228,6 +229,30 @@ aider --model ollama/qwen3:14b
 Or install the **Continue** extension in VS Code and point it at Ollama
 for local autocomplete and chat inside your editor.
 
+## MCP: plug-in tools for the agent
+
+The agent speaks [Model Context Protocol](https://modelcontextprotocol.io) —
+the same plug-in standard Claude uses. Hundreds of community servers
+exist (filesystem, SQLite/Postgres, Home Assistant, browsers, Slack, …).
+Add them in `data/mcp.json` (Claude Desktop's config shape):
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/you/notes"]
+    }
+  }
+}
+```
+
+Restart the app; each server's tools appear to the agent automatically
+(named `mcp_<server>_<tool>`), and the Status tab shows what connected.
+Servers run as local subprocesses. Only add servers you trust — each one
+is code running on your machine with the powers you give it, and the
+agent will be able to call everything it offers.
+
 ## Agent + GitHub (guarded)
 
 The agent can clone a repo, edit it, commit, and push — with guardrails
@@ -275,6 +300,7 @@ app/
   rag.py        document indexing & retrieval, with reranking
   repo.py       clone GitHub repos into the document index
   gittools.py   guarded git tools: agent commits to ai/* branches
+  mcp_client.py MCP plug-in tools for the agent (data/mcp.json)
   research.py   web research with citations, plus deep-research mode
   browser.py    headless-browser verification of web pages
   sandbox.py    Python execution for the agent (data/workspace/)
