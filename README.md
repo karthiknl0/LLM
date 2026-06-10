@@ -19,6 +19,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Read your PDFs / Excel / code (RAG) | Local vector DB (ChromaDB) + Ollama embeddings | Fast |
 | Chat with any GitHub repo | Shallow clone + the same RAG pipeline | Fast |
 | Edit & push code to GitHub | Guarded git tools — ai/* branches only, you merge via PR | Supervised |
+| Verify web pages in a browser | Headless Chromium + vision model + console errors | Fast |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
 | Look at your screen | Screenshot + vision model | Fast, stays on your machine |
@@ -133,7 +134,9 @@ command to fix each.
   instead of guessing at numbers (note: that code runs on your machine,
   with a 60-second timeout, confined to the workspace folder by
   convention). Tick **Deep answer** to make it review its own draft
-  before replying.
+  before replying. When it builds or changes a web page, it verifies
+  the result in a headless browser — screenshot checked by the vision
+  model, console errors included — before telling you it's done.
 - **Team** — multi-agent mode for big jobs: a planner agent splits your
   task into subtasks, worker agents execute each one with the full
   toolset, and a reviewer agent merges the results into one answer.
@@ -269,6 +272,7 @@ app/
   repo.py       clone GitHub repos into the document index
   gittools.py   guarded git tools: agent commits to ai/* branches
   research.py   web research with citations, plus deep-research mode
+  browser.py    headless-browser verification of web pages
   sandbox.py    Python execution for the agent (data/workspace/)
   skills.py     self-built skill library (data/skills/)
   screen.py     screen capture + vision analysis

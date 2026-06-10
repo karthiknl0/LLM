@@ -25,6 +25,10 @@ sentence-transformers>=3.0
 # Screen capture (Screen tab + agent look_at_screen tool)
 mss>=9.0
 
+# In-browser verification (agent verify_in_browser tool)
+# after pip install, run once: python -m playwright install chromium
+playwright>=1.45
+
 # Web research (free search + page extraction, no API keys)
 ddgs>=9.0
 trafilatura>=1.12

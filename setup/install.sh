@@ -31,6 +31,9 @@ pip install torch --index-url https://download.pytorch.org/whl/cu121
 echo "==> Installing Python dependencies"
 pip install -r requirements.txt
 
+echo "==> Installing headless Chromium for browser verification"
+python -m playwright install chromium || echo "    (skipped — browser verification disabled)"
+
 echo
 echo "Done. Start the app with:"
 echo "  source .venv/bin/activate && python -m app.main"

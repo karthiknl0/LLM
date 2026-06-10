@@ -9,6 +9,7 @@ from pathlib import Path
 import ollama
 
 from app import gittools, imagegen, rag, research, sandbox, screen, skills
+from app.browser import verify_in_browser
 from app.chat import _log_turn
 from app.config import CHAT_MODEL, WORKSPACE_DIR
 from app.memory import recall, recall_lessons, remember
@@ -39,7 +40,9 @@ SYSTEM_PROMPT = (
     "abstractions. Change only what the task requires; match the "
     "existing style and never rewrite unrelated code. Verify before "
     "declaring done: run the code, and for bug fixes reproduce the bug "
-    "first, then show it fixed."
+    "first, then show it fixed. After building or changing anything "
+    "with a web page, verify_in_browser it (use file:// for HTML files "
+    "in the workspace) and fix what the check reveals before answering."
 )
 
 TOOLS = [
@@ -165,6 +168,33 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "verify_in_browser",
+            "description": (
+                "Open a URL in a headless browser, screenshot it, analyze "
+                "it with the vision model, and report visible text plus "
+                "console errors. Use to verify web pages you built or "
+                "changed (file:///path or http://localhost:port) and to "
+                "check live sites visually."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "http(s):// or file:// URL to check",
+                    },
+                    "question": {
+                        "type": "string",
+                        "description": "What to verify on the page",
+                    },
+                },
+                "required": ["url"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "look_at_screen",
             "description": (
                 "Capture the user's current screen and analyze it with the "
@@ -223,6 +253,7 @@ TOOL_FUNCTIONS = {
     "generate_image": _run_generate_image,
     "run_python": sandbox.run_python,
     "look_at_screen": screen.look_at_screen,
+    "verify_in_browser": verify_in_browser,
     "git_clone": gittools.git_clone,
     "git_status": gittools.git_status,
     "git_commit": gittools.git_commit,
@@ -235,6 +266,7 @@ TOOL_STATUS = {
     "generate_image": "Generating image",
     "run_python": "Running Python code",
     "look_at_screen": "Looking at your screen",
+    "verify_in_browser": "Verifying in the browser",
     "git_clone": "Cloning repository",
     "git_status": "Checking git status",
     "git_commit": "Committing changes",
