@@ -6,6 +6,7 @@ Then open: http://localhost:7860
 
 import gradio as gr
 
+from app.agent import agent_chat
 from app.chat import stream_chat
 from app.config import CHAT_MODEL, DOCUMENTS_DIR, VISION_MODEL
 from app.imagegen import generate_image
@@ -21,8 +22,16 @@ def build_app() -> gr.Blocks:
     with gr.Blocks(title="Local AI Hub") as demo:
         gr.Markdown("# Local AI Hub\nEverything runs on your own machine.")
 
+        with gr.Tab("Agent"):
+            gr.Markdown(
+                f"Model: `{CHAT_MODEL}` with tools — it decides by itself "
+                "when to search your documents, research the web, or "
+                "generate an image."
+            )
+            gr.ChatInterface(fn=agent_chat, type="messages")
+
         with gr.Tab("Chat"):
-            gr.Markdown(f"Model: `{CHAT_MODEL}` (local via Ollama)")
+            gr.Markdown(f"Model: `{CHAT_MODEL}` (local via Ollama, no tools)")
             gr.ChatInterface(fn=stream_chat, type="messages")
 
         with gr.Tab("Voice"):
