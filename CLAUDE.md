@@ -13,6 +13,21 @@
   failed model load should print a warning, never crash the app.
 - Everything must run fully locally — no cloud APIs, no telemetry.
 
+## Coding principles (Karpathy-inspired)
+
+- **Think before coding.** State assumptions explicitly; when a request
+  is ambiguous, present the interpretations rather than picking one
+  silently; push back when a simpler approach exists.
+- **Simplicity first.** Minimum code that solves the problem — no
+  speculative features, no abstractions for single-use code. If 200
+  lines could be 50, write 50.
+- **Surgical changes.** Touch only what the task requires; match the
+  existing style; don't "improve" adjacent code. Clean up orphans your
+  change created, leave pre-existing dead code alone (mention it).
+- **Goal-driven execution.** Define how success will be verified before
+  starting; run the code (or tests) and show it working before calling
+  a task done.
+
 ## Project overview
 
 Local AI Hub: a fully-local multimodal assistant (chat, RAG over

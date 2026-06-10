@@ -32,7 +32,14 @@ SYSTEM_PROMPT = (
     "git_push ONLY when the user explicitly asks to push — the push "
     "creates a branch they review as a pull request. Answer directly "
     "from your own knowledge when no tool is needed. Be concise and "
-    "practical."
+    "practical.\n\n"
+    "When writing or editing code: state your assumptions instead of "
+    "guessing silently, and ask when truly unsure. Write the minimum "
+    "code that solves the problem — no speculative features or "
+    "abstractions. Change only what the task requires; match the "
+    "existing style and never rewrite unrelated code. Verify before "
+    "declaring done: run the code, and for bug fixes reproduce the bug "
+    "first, then show it fixed."
 )
 
 TOOLS = [
