@@ -1,0 +1,141 @@
+"""Index local documents (PDF, Excel, CSV, code/text) and answer
+questions about them. Everything stays on disk in ChromaDB."""
+
+from pathlib import Path
+
+import chromadb
+import ollama
+import pandas as pd
+from pypdf import PdfReader
+
+from app.config import (
+    CHAT_MODEL,
+    CHUNK_OVERLAP,
+    CHUNK_SIZE,
+    CODE_EXTENSIONS,
+    DOCUMENTS_DIR,
+    EMBED_MODEL,
+    TOP_K,
+    VECTOR_DB_DIR,
+)
+
+_client = chromadb.PersistentClient(path=str(VECTOR_DB_DIR))
+COLLECTION_NAME = "documents"
+
+
+def _read_pdf(path: Path) -> str:
+    reader = PdfReader(str(path))
+    return "\n".join(page.extract_text() or "" for page in reader.pages)
+
+
+def _read_spreadsheet(path: Path) -> str:
+    if path.suffix.lower() == ".csv":
+        sheets = {"csv": pd.read_csv(path)}
+    else:
+        sheets = pd.read_excel(path, sheet_name=None)
+    parts = []
+    for name, df in sheets.items():
+        parts.append(f"## Sheet: {name}\n{df.to_string(max_rows=500)}")
+    return "\n\n".join(parts)
+
+
+def _read_file(path: Path) -> str | None:
+    suffix = path.suffix.lower()
+    try:
+        if suffix == ".pdf":
+            return _read_pdf(path)
+        if suffix in (".xlsx", ".xls", ".csv"):
+            return _read_spreadsheet(path)
+        if suffix in CODE_EXTENSIONS:
+            return path.read_text(encoding="utf-8", errors="replace")
+    except Exception as exc:  # skip unreadable files, keep indexing the rest
+        print(f"[rag] could not read {path.name}: {exc}")
+    return None
+
+
+def _chunk(text: str) -> list[str]:
+    chunks = []
+    step = CHUNK_SIZE - CHUNK_OVERLAP
+    for start in range(0, len(text), step):
+        piece = text[start : start + CHUNK_SIZE].strip()
+        if piece:
+            chunks.append(piece)
+    return chunks
+
+
+def _embed(texts: list[str]) -> list[list[float]]:
+    return ollama.embed(model=EMBED_MODEL, input=texts)["embeddings"]
+
+
+def index_documents() -> str:
+    """(Re)build the index from everything in data/documents/."""
+    try:
+        _client.delete_collection(COLLECTION_NAME)
+    except Exception:
+        pass
+    collection = _client.create_collection(COLLECTION_NAME)
+
+    files = [p for p in sorted(DOCUMENTS_DIR.rglob("*")) if p.is_file()]
+    if not files:
+        return f"No files found. Put PDFs, Excel files, or code into {DOCUMENTS_DIR}"
+
+    indexed, skipped = 0, 0
+    for path in files:
+        text = _read_file(path)
+        if not text or not text.strip():
+            skipped += 1
+            continue
+        chunks = _chunk(text)
+        rel = str(path.relative_to(DOCUMENTS_DIR))
+        # embed in batches to keep requests small
+        for batch_start in range(0, len(chunks), 32):
+            batch = chunks[batch_start : batch_start + 32]
+            collection.add(
+                ids=[f"{rel}::{batch_start + i}" for i in range(len(batch))],
+                documents=batch,
+                embeddings=_embed(batch),
+                metadatas=[{"source": rel}] * len(batch),
+            )
+        indexed += 1
+
+    return f"Indexed {indexed} file(s) ({skipped} skipped) from {DOCUMENTS_DIR}"
+
+
+def ask_documents(question: str) -> str:
+    """Retrieve relevant chunks and answer with the local LLM."""
+    try:
+        collection = _client.get_collection(COLLECTION_NAME)
+    except Exception:
+        return "No index yet — click 'Index documents' first."
+
+    result = collection.query(
+        query_embeddings=_embed([question]), n_results=TOP_K
+    )
+    docs = result["documents"][0]
+    sources = [m["source"] for m in result["metadatas"][0]]
+    if not docs:
+        return "Nothing relevant found in your documents."
+
+    context = "\n\n---\n\n".join(
+        f"[{src}]\n{doc}" for src, doc in zip(sources, docs)
+    )
+    response = ollama.chat(
+        model=CHAT_MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "Answer using ONLY the provided document excerpts. "
+                    "Cite the source file names you used. If the answer "
+                    "is not in the excerpts, say so."
+                ),
+            },
+            {
+                "role": "user",
+                "content": f"Documents:\n{context}\n\nQuestion: {question}",
+            },
+        ],
+    )
+    answer = response["message"]["content"]
+    unique_sources = ", ".join(dict.fromkeys(sources))
+    return f"{answer}\n\n_Sources searched: {unique_sources}_"

@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+
+# user data and generated content stay local
+data/documents/*
+data/vectordb/
+outputs/*
+!data/documents/.gitkeep
+!outputs/.gitkeep
+
+# model caches
+.cache/
+*.safetensors
+*.gguf
