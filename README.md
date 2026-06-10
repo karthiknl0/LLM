@@ -14,9 +14,11 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Team mode (multi-agent) | Planner → tool-using workers → reviewer | Slower, for big tasks |
 | Run Python for you | Agent writes & executes code in `data/workspace/` | Fast |
 | Learn from corrections | Behavioral lessons stored alongside facts | Automatic |
+| Teach itself skills | Reusable functions saved from solved tasks | Automatic |
 | Deep research / deep answer | Multi-angle search + self-review passes | Slower, better |
 | Read your PDFs / Excel / code (RAG) | Local vector DB (ChromaDB) + Ollama embeddings | Fast |
 | Chat with any GitHub repo | Shallow clone + the same RAG pipeline | Fast |
+| Edit & push code to GitHub | Guarded git tools — ai/* branches only, you merge via PR | Supervised |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
 | Look at your screen | Screenshot + vision model | Fast, stays on your machine |
@@ -178,6 +180,11 @@ into the model's context at the right time. This app does exactly that:
   asked about X, do Y") so it stops repeating mistakes.
 - On every new message, relevant memories are recalled and given to the
   model, so it remembers you across restarts.
+- When the agent solves a task with code, the reusable part is saved as
+  a named function in `data/skills/` (the **Skills** tab lists them).
+  Next time a similar task comes up, the agent is told to import the
+  saved skill instead of rewriting it — a personal standard library
+  built from your actual problems.
 - The **Memory** tab lets you review or wipe everything — it's your data,
   on your disk.
 
@@ -215,6 +222,32 @@ aider --model ollama/qwen3:14b
 Or install the **Continue** extension in VS Code and point it at Ollama
 for local autocomplete and chat inside your editor.
 
+## Agent + GitHub (guarded)
+
+The agent can clone a repo, edit it, commit, and push — with guardrails
+enforced in code, not prompts:
+
+- work happens only in `data/workspace/repos/`
+- commits only land on branches named `ai/<something>`
+- pushing `main`/`master` is physically impossible; no force-push exists
+- **you merge via pull request** — the agent proposes, you review
+
+Try: *"clone https://github.com/you/yourrepo, add a script that does X,
+commit it, and push"*. The push uses your normal git credentials, or set
+a fine-grained token first for tighter scoping (recommended — limit it
+to chosen repos, Contents: read & write):
+
+```powershell
+$env:AIHUB_GITHUB_TOKEN = "github_pat_..."   # Windows
+```
+
+```bash
+export AIHUB_GITHUB_TOKEN="github_pat_..."   # Linux
+```
+
+Worst case from a confused model is a messy `ai/*` branch you delete —
+never a broken `main`.
+
 ## Bonus: evolve algorithms with your model
 
 `evolve/` contains a ready-to-run OpenEvolve experiment (open-source
@@ -234,8 +267,10 @@ app/
   personas.py   switchable specialist prompts (data/personas/*.md)
   rag.py        document indexing & retrieval, with reranking
   repo.py       clone GitHub repos into the document index
+  gittools.py   guarded git tools: agent commits to ai/* branches
   research.py   web research with citations, plus deep-research mode
   sandbox.py    Python execution for the agent (data/workspace/)
+  skills.py     self-built skill library (data/skills/)
   screen.py     screen capture + vision analysis
   status.py     system health checks (Status tab)
   vision.py     image & video understanding

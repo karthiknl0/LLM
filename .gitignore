@@ -9,6 +9,7 @@ data/chatlogs/
 data/training/
 data/workspace/
 data/personas/
+data/skills/
 outputs/*
 !data/documents/.gitkeep
 !outputs/.gitkeep
