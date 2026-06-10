@@ -12,7 +12,7 @@ from app.config import CHAT_MODEL, DOCUMENTS_DIR, VISION_MODEL
 from app.imagegen import generate_image
 from app.memory import clear_memories, list_memories
 from app.rag import ask_documents, index_documents
-from app.research import research
+from app.research import deep_research, research
 from app.videogen import generate_video
 from app.vision import analyze_media
 from app.voice import transcribe_file, voice_chat
@@ -25,10 +25,20 @@ def build_app() -> gr.Blocks:
         with gr.Tab("Agent"):
             gr.Markdown(
                 f"Model: `{CHAT_MODEL}` with tools — it decides by itself "
-                "when to search your documents, research the web, or "
-                "generate an image."
+                "when to search your documents, research the web, run "
+                "Python (workspace: `data/workspace/`), or generate an image."
             )
-            gr.ChatInterface(fn=agent_chat, type="messages")
+            gr.ChatInterface(
+                fn=agent_chat,
+                type="messages",
+                additional_inputs=[
+                    gr.Checkbox(
+                        label="Deep answer — the model reviews its own draft "
+                        "first (slower, more reliable)",
+                        value=False,
+                    )
+                ],
+            )
 
         with gr.Tab("Chat"):
             gr.Markdown(f"Model: `{CHAT_MODEL}` (local via Ollama, no tools)")
@@ -92,10 +102,27 @@ def build_app() -> gr.Blocks:
                 label="Research question",
                 placeholder="e.g. What are the best open-source TTS models in 2026?",
             )
+            research_deep = gr.Checkbox(
+                label="Deep research — multiple search angles + a "
+                "verification pass (slower, better for complex questions)",
+                value=False,
+            )
             research_btn = gr.Button("Research", variant="primary")
             research_answer = gr.Markdown()
-            research_question.submit(research, inputs=research_question, outputs=research_answer)
-            research_btn.click(research, inputs=research_question, outputs=research_answer)
+
+            def _run_research(question, deep):
+                return deep_research(question) if deep else research(question)
+
+            research_question.submit(
+                _run_research,
+                inputs=[research_question, research_deep],
+                outputs=research_answer,
+            )
+            research_btn.click(
+                _run_research,
+                inputs=[research_question, research_deep],
+                outputs=research_answer,
+            )
 
         with gr.Tab("Vision"):
             gr.Markdown(f"Model: `{VISION_MODEL}` — upload an image or a video.")
@@ -134,14 +161,15 @@ def build_app() -> gr.Blocks:
 
         with gr.Tab("Memory"):
             gr.Markdown(
-                "The assistant remembers facts about you across sessions. "
-                "Everything is stored locally — review or wipe it any time."
+                "The assistant remembers facts about you across sessions, "
+                "and learns lessons when you correct it. Everything is "
+                "stored locally — review or wipe it any time."
             )
             with gr.Row():
                 memory_refresh = gr.Button("Show memories", variant="primary")
                 memory_clear = gr.Button("Forget everything")
             memory_table = gr.Dataframe(
-                headers=["Date", "Memory"], interactive=False
+                headers=["Date", "Type", "Memory"], interactive=False
             )
             memory_status = gr.Markdown()
             memory_refresh.click(list_memories, outputs=memory_table)

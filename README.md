@@ -10,7 +10,10 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Capability | How | Status on 16 GB GPU |
 |---|---|---|
 | Chat & coding help | Qwen 3 14B via Ollama | Fast, fully on GPU |
-| Agent mode (auto tool use) | Native tool calling: docs, web, images | Fast |
+| Agent mode (auto tool use) | Native tool calling: docs, web, Python, images | Fast |
+| Run Python for you | Agent writes & executes code in `data/workspace/` | Fast |
+| Learn from corrections | Behavioral lessons stored alongside facts | Automatic |
+| Deep research / deep answer | Multi-angle search + self-review passes | Slower, better |
 | Read your PDFs / Excel / code (RAG) | Local vector DB (ChromaDB) + Ollama embeddings | Fast |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
@@ -69,9 +72,13 @@ Open http://localhost:7860 in your browser.
 ## Using it
 
 - **Agent** — the smartest way to use the hub: one chat where the model
-  itself decides when to search your documents, research the web, or
-  generate an image. You'll see *Searching your documents…* style notes
-  while it works.
+  itself decides when to search your documents, research the web, run
+  Python, or generate an image. You'll see *Searching your documents…*
+  style notes while it works. Drop data files into `data/workspace/` and
+  ask for analysis — the model writes and runs real code instead of
+  guessing at numbers (note: that code runs on your machine, with a
+  60-second timeout, confined to the workspace folder by convention).
+  Tick **Deep answer** to make it review its own draft before replying.
 - **Chat** — plain conversation with the local model, no tools.
 - **Voice** — record a question with your mic, hear the answer spoken back.
   (Spoken replies need `espeak-ng`: `sudo apt install espeak-ng` on Linux.)
@@ -80,7 +87,8 @@ Open http://localhost:7860 in your browser.
 - **Research** — Perplexity-style web answers: your local model searches
   DuckDuckGo, reads the top pages, and replies with `[n]` citations.
   The only feature that uses the internet — no API keys involved, and
-  the reasoning still happens on your GPU.
+  the reasoning still happens on your GPU. Tick **Deep research** for
+  multiple search angles and a verification pass against the sources.
 - **Documents** — drop PDFs, Excel files, and code into `data/documents/`,
   click *Index documents*, then ask questions about them. Behind the
   scenes, 20 candidate passages are fetched and a local reranker model
@@ -98,7 +106,9 @@ the frontier ones. What feels like learning is memory: relevant facts placed
 into the model's context at the right time. This app does exactly that:
 
 - After each chat turn, a fact worth keeping (your preferences, projects,
-  decisions) is extracted and stored locally in ChromaDB.
+  decisions) is extracted and stored locally in ChromaDB. When you
+  *correct* the assistant, it also stores a behavioral lesson ("when
+  asked about X, do Y") so it stops repeating mistakes.
 - On every new message, relevant memories are recalled and given to the
   model, so it remembers you across restarts.
 - The **Memory** tab lets you review or wipe everything — it's your data,
@@ -147,7 +157,8 @@ app/
   agent.py      agent mode: chat with automatic tool use
   chat.py       chat with the local LLM
   rag.py        document indexing & retrieval, with reranking
-  research.py   web research with citations (DuckDuckGo + local LLM)
+  research.py   web research with citations, plus deep-research mode
+  sandbox.py    Python execution for the agent (data/workspace/)
   vision.py     image & video understanding
   voice.py      voice chat (Whisper + Kokoro TTS) & file transcription
   imagegen.py   Stable Diffusion XL Turbo image generation
