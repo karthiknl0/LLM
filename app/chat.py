@@ -1,9 +1,26 @@
-"""Chat with the local LLM via Ollama, with long-term memory."""
+"""Chat with the local LLM via Ollama, with long-term memory.
+
+Every turn is also logged to data/chatlogs/ so your conversations can
+later be used to fine-tune your own model (see finetune/README.md).
+"""
+
+import datetime
+import json
 
 import ollama
 
-from app.config import CHAT_MODEL
+from app.config import CHAT_MODEL, CHATLOG_DIR
 from app.memory import recall, remember
+
+
+def _log_turn(user_message: str, assistant_reply: str) -> None:
+    try:
+        path = CHATLOG_DIR / f"{datetime.date.today().isoformat()}.jsonl"
+        record = {"user": user_message, "assistant": assistant_reply}
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except Exception as exc:
+        print(f"[chatlog] skipped: {exc}")
 
 SYSTEM_PROMPT = (
     "You are a helpful local AI assistant running entirely on the user's "
@@ -33,5 +50,6 @@ def stream_chat(message: str, history: list[dict]):
         reply += part["message"]["content"]
         yield reply
 
-    # after the reply finishes, quietly store anything worth remembering
+    # after the reply finishes, log it and store anything worth remembering
+    _log_turn(message, reply)
     remember(message, reply)

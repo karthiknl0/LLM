@@ -1,0 +1,7 @@
+# Fine-tuning extras (install on top of the main requirements.txt)
+# bitsandbytes requires Linux or WSL2 on Windows.
+
+peft>=0.13
+trl>=0.12
+bitsandbytes>=0.44
+datasets>=3.0

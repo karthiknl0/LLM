@@ -17,6 +17,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Generate videos | LTX-Video | Experimental — short clips, several minutes each |
 | Remember you across sessions | Local long-term memory (ChromaDB) | Automatic |
 | Self-upgrade | `setup/update.sh` pulls newest models | Run any time |
+| Learn from you (weight-level) | QLoRA fine-tuning on your chat logs | See `finetune/README.md` |
 
 ## Setup (one time)
 
@@ -87,8 +88,11 @@ into the model's context at the right time. This app does exactly that:
 
 To upgrade the model itself, run `bash setup/update.sh` — open-source models
 improve every few months, and pulling a newer one is how your AI gets
-permanently smarter. For deeper personalization later, QLoRA fine-tuning on
-your own chat logs fits on a 16 GB GPU (ask for it when you're ready).
+permanently smarter.
+
+For true weight-level learning, your chats are logged locally and can be
+used to **fine-tune your own model** with QLoRA — it permanently absorbs
+your style and becomes `my-ai` in Ollama. Full guide: `finetune/README.md`.
 
 ## Honest notes on your hardware
 
@@ -113,7 +117,12 @@ app/
   vision.py     image & video understanding
   imagegen.py   Stable Diffusion XL Turbo image generation
   videogen.py   LTX-Video text-to-video (experimental)
+finetune/
+  export_data.py    build training dataset from your chat logs
+  train.py          QLoRA fine-tuning (16 GB GPU)
+  merge_and_export.py  merge + import into Ollama as your own model
 data/documents/ put your files here, then index them
+data/chatlogs/  your conversations (auto-logged, used for fine-tuning)
 outputs/        generated images & videos
-setup/          install script
+setup/          install & update scripts
 ```
