@@ -10,6 +10,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Capability | How | Status on 16 GB GPU |
 |---|---|---|
 | Chat & coding help | Qwen 3 14B via Ollama | Fast, fully on GPU |
+| Agent mode (auto tool use) | Native tool calling: docs, web, images | Fast |
 | Read your PDFs / Excel / code (RAG) | Local vector DB (ChromaDB) + Ollama embeddings | Fast |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
@@ -67,7 +68,11 @@ Open http://localhost:7860 in your browser.
 
 ## Using it
 
-- **Chat** — talk to your local model. It never leaves your machine.
+- **Agent** — the smartest way to use the hub: one chat where the model
+  itself decides when to search your documents, research the web, or
+  generate an image. You'll see *Searching your documents…* style notes
+  while it works.
+- **Chat** — plain conversation with the local model, no tools.
 - **Voice** — record a question with your mic, hear the answer spoken back.
   (Spoken replies need `espeak-ng`: `sudo apt install espeak-ng` on Linux.)
 - **Transcribe** — drop in a meeting recording, voice note, or video and
@@ -139,6 +144,7 @@ for local autocomplete and chat inside your editor.
 app/
   main.py       Gradio UI (tabs for each capability)
   config.py     model names & paths — change models here
+  agent.py      agent mode: chat with automatic tool use
   chat.py       chat with the local LLM
   rag.py        document indexing & retrieval, with reranking
   research.py   web research with citations (DuckDuckGo + local LLM)

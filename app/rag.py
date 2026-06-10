@@ -124,12 +124,13 @@ def index_documents() -> str:
     return f"Indexed {indexed} file(s) ({skipped} skipped) from {DOCUMENTS_DIR}"
 
 
-def ask_documents(question: str) -> str:
-    """Retrieve relevant chunks and answer with the local LLM."""
+def retrieve_context(question: str) -> tuple[str, list[str]] | None:
+    """Best document chunks for a question as (context, sources),
+    or None if there is no index / nothing relevant."""
     try:
         collection = _client.get_collection(COLLECTION_NAME)
     except Exception:
-        return "No index yet — click 'Index documents' first."
+        return None
 
     result = collection.query(
         query_embeddings=_embed([question]),
@@ -138,12 +139,23 @@ def ask_documents(question: str) -> str:
     docs = result["documents"][0]
     sources = [m["source"] for m in result["metadatas"][0]]
     if not docs:
-        return "Nothing relevant found in your documents."
+        return None
     docs, sources = _rerank(question, docs, sources)
-
     context = "\n\n---\n\n".join(
         f"[{src}]\n{doc}" for src, doc in zip(sources, docs)
     )
+    return context, sources
+
+
+def ask_documents(question: str) -> str:
+    """Retrieve relevant chunks and answer with the local LLM."""
+    retrieved = retrieve_context(question)
+    if retrieved is None:
+        return (
+            "Nothing relevant found — is the index built? "
+            "Click 'Index documents' first."
+        )
+    context, sources = retrieved
     response = ollama.chat(
         model=CHAT_MODEL,
         messages=[
