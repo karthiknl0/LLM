@@ -1,0 +1,34 @@
+# One-time setup for Local AI Hub on Windows.
+$ErrorActionPreference = "Stop"
+Set-Location (Join-Path $PSScriptRoot "..")
+
+if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) {
+    Write-Host "==> Installing Ollama"
+    winget install --id Ollama.Ollama -e --accept-source-agreements --accept-package-agreements
+    # pick up the PATH the installer just wrote
+    $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" +
+                [Environment]::GetEnvironmentVariable("Path", "User")
+}
+
+Write-Host "==> Pulling local models (~15 GB total, one time)"
+ollama pull qwen3:14b
+ollama pull qwen2.5vl:7b
+ollama pull nomic-embed-text
+
+Write-Host "==> Creating Python virtual environment"
+python -m venv .venv
+& .venv\Scripts\python.exe -m pip install --upgrade pip
+
+Write-Host "==> Installing PyTorch with CUDA 12.1"
+& .venv\Scripts\pip.exe install torch --index-url https://download.pytorch.org/whl/cu121
+
+Write-Host "==> Installing Python dependencies"
+& .venv\Scripts\pip.exe install -r requirements.txt
+
+Write-Host ""
+Write-Host "Done. Start your hub with:"
+Write-Host "  powershell -ExecutionPolicy Bypass -File setup\start.ps1"
+Write-Host ""
+Write-Host "Optional, for spoken replies (TTS): install espeak-ng from"
+Write-Host "  https://github.com/espeak-ng/espeak-ng/releases"
+Write-Host "Note: QLoRA fine-tuning (finetune/) needs WSL2 on Windows."

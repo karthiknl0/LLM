@@ -31,22 +31,41 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 
 ## Setup (one time)
 
-### One-line install (Linux / WSL2)
+### One-line install
+
+**Windows (PowerShell):**
+
+```powershell
+irm https://raw.githubusercontent.com/karthiknl0/LLM/main/setup/bootstrap.ps1 | iex
+```
+
+**Linux / WSL2:**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/karthiknl0/LLM/main/setup/bootstrap.sh | bash
 ```
 
-That clones the repo to `~/local-ai-hub` and runs the full setup —
-Ollama, the three models (~15 GB download), Python environment, and all
-dependencies. When it finishes:
+Either clones the repo to `~/local-ai-hub` (or `%USERPROFILE%\local-ai-hub`)
+and runs the full setup — Ollama, the three models (~15 GB download),
+Python environment, and all dependencies. When it finishes:
+
+```powershell
+# Windows
+cd $env:USERPROFILE\local-ai-hub; powershell -ExecutionPolicy Bypass -File setup\start.ps1
+```
 
 ```bash
+# Linux / WSL2
 cd ~/local-ai-hub && bash setup/start.sh
 ```
 
-Prefer to see what you're running first? The script is
-`setup/bootstrap.sh`, and the manual steps below do the same thing.
+Windows notes: needs git and Python installed (`winget install Git.Git
+Python.Python.3.12`). Spoken replies want espeak-ng (installer at
+github.com/espeak-ng/espeak-ng/releases) — everything else works without
+it. QLoRA fine-tuning (`finetune/`) is the one feature that needs WSL2.
+
+Prefer to see what you're running first? The scripts are in `setup/`,
+and the manual steps below do the same thing.
 
 ### Manual setup
 
