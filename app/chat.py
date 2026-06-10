@@ -10,7 +10,7 @@ import json
 import ollama
 
 from app.config import CHAT_MODEL, CHATLOG_DIR
-from app.memory import recall, remember
+from app.memory import recall, recall_lessons, remember
 
 
 def _log_turn(user_message: str, assistant_reply: str) -> None:
@@ -36,6 +36,10 @@ def stream_chat(message: str, history: list[dict]):
     if memories:
         system += "\n\nThings you remember about the user from past chats:\n"
         system += "\n".join(f"- {m}" for m in memories)
+    lessons = recall_lessons(message)
+    if lessons:
+        system += "\n\nStanding instructions learned from past corrections:\n"
+        system += "\n".join(f"- {lesson}" for lesson in lessons)
 
     messages = [{"role": "system", "content": system}]
     messages += [

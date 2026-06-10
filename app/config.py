@@ -26,6 +26,7 @@ VECTOR_DB_DIR = ROOT / "data" / "vectordb"
 OUTPUTS_DIR = ROOT / "outputs"
 CHATLOG_DIR = ROOT / "data" / "chatlogs"     # raw chats, used as training data
 TRAINING_DIR = ROOT / "data" / "training"    # prepared fine-tuning dataset
+WORKSPACE_DIR = ROOT / "data" / "workspace"  # agent-run Python works here
 
 # --- RAG settings ---
 CHUNK_SIZE = 1200        # characters per chunk
@@ -42,5 +43,8 @@ CODE_EXTENSIONS = {
 # --- Video understanding ---
 VIDEO_FRAMES_TO_SAMPLE = 8  # frames sent to the vision model per video
 
-for _dir in (DOCUMENTS_DIR, VECTOR_DB_DIR, OUTPUTS_DIR, CHATLOG_DIR, TRAINING_DIR):
+for _dir in (
+    DOCUMENTS_DIR, VECTOR_DB_DIR, OUTPUTS_DIR,
+    CHATLOG_DIR, TRAINING_DIR, WORKSPACE_DIR,
+):
     _dir.mkdir(parents=True, exist_ok=True)
