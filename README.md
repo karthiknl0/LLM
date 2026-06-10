@@ -15,6 +15,8 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
 | Generate images | Stable Diffusion XL Turbo | ~2–5 s per image |
 | Generate videos | LTX-Video | Experimental — short clips, several minutes each |
+| Remember you across sessions | Local long-term memory (ChromaDB) | Automatic |
+| Self-upgrade | `setup/update.sh` pulls newest models | Run any time |
 
 ## Setup (one time)
 
@@ -69,6 +71,24 @@ Open http://localhost:7860 in your browser.
   Saved to `outputs/`.
 - **Generate Video** — experimental. Short clips (~3–5 s). The model is
   downloaded on first use (~10 GB) and generation takes several minutes.
+
+## How it "learns"
+
+Large language models don't update their weights while you chat — not even
+the frontier ones. What feels like learning is memory: relevant facts placed
+into the model's context at the right time. This app does exactly that:
+
+- After each chat turn, a fact worth keeping (your preferences, projects,
+  decisions) is extracted and stored locally in ChromaDB.
+- On every new message, relevant memories are recalled and given to the
+  model, so it remembers you across restarts.
+- The **Memory** tab lets you review or wipe everything — it's your data,
+  on your disk.
+
+To upgrade the model itself, run `bash setup/update.sh` — open-source models
+improve every few months, and pulling a newer one is how your AI gets
+permanently smarter. For deeper personalization later, QLoRA fine-tuning on
+your own chat logs fits on a 16 GB GPU (ask for it when you're ready).
 
 ## Honest notes on your hardware
 

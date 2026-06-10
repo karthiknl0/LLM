@@ -9,6 +9,7 @@ import gradio as gr
 from app.chat import stream_chat
 from app.config import CHAT_MODEL, DOCUMENTS_DIR, VISION_MODEL
 from app.imagegen import generate_image
+from app.memory import clear_memories, list_memories
 from app.rag import ask_documents, index_documents
 from app.videogen import generate_video
 from app.vision import analyze_media
@@ -72,6 +73,21 @@ def build_app() -> gr.Blocks:
                 inputs=[image_prompt, image_steps],
                 outputs=[image_out, image_status],
             )
+
+        with gr.Tab("Memory"):
+            gr.Markdown(
+                "The assistant remembers facts about you across sessions. "
+                "Everything is stored locally — review or wipe it any time."
+            )
+            with gr.Row():
+                memory_refresh = gr.Button("Show memories", variant="primary")
+                memory_clear = gr.Button("Forget everything")
+            memory_table = gr.Dataframe(
+                headers=["Date", "Memory"], interactive=False
+            )
+            memory_status = gr.Markdown()
+            memory_refresh.click(list_memories, outputs=memory_table)
+            memory_clear.click(clear_memories, outputs=memory_status)
 
         with gr.Tab("Generate Video"):
             gr.Markdown(
