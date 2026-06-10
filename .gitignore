@@ -10,6 +10,7 @@ data/training/
 data/workspace/
 data/personas/
 data/skills/
+data/playbooks/
 data/mcp.json
 outputs/*
 !data/documents/.gitkeep

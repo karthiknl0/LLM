@@ -15,6 +15,7 @@ from app.config import CHAT_MODEL, WORKSPACE_DIR
 from app.history import compact_history
 from app.memory import recall, recall_lessons, remember
 from app.notes import read_notes, recent_notes, take_note
+from app.playbooks import catalog_hint, load_playbook
 from app.vision import VIDEO_EXTENSIONS, analyze_media
 
 MAX_TOOL_ROUNDS = 6
@@ -199,6 +200,24 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "load_playbook",
+            "description": (
+                "Load the full step-by-step workflow of a named playbook "
+                "before doing that kind of task. Names are listed in your "
+                "system prompt."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Playbook name"}
+                },
+                "required": ["name"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "verify_in_browser",
             "description": (
                 "Open a URL in a headless browser, screenshot it, analyze "
@@ -287,6 +306,7 @@ TOOL_FUNCTIONS = {
     "verify_in_browser": verify_in_browser,
     "take_note": take_note,
     "read_notes": read_notes,
+    "load_playbook": load_playbook,
     "git_clone": gittools.git_clone,
     "git_status": gittools.git_status,
     "git_commit": gittools.git_commit,
@@ -302,6 +322,7 @@ TOOL_STATUS = {
     "verify_in_browser": "Verifying in the browser",
     "take_note": "Taking a note",
     "read_notes": "Reading notes",
+    "load_playbook": "Loading a playbook",
     "git_clone": "Cloning repository",
     "git_status": "Checking git status",
     "git_commit": "Committing changes",
@@ -333,7 +354,7 @@ def run_with_tools(system: str, user: str, max_rounds: int = MAX_TOOL_ROUNDS) ->
     """One-shot tool-using conversation, for other modules (team mode):
     same tools as the Agent tab, no streaming."""
     messages = [
-        {"role": "system", "content": system + _skill_hints(user)},
+        {"role": "system", "content": system + _skill_hints(user) + catalog_hint()},
         {"role": "user", "content": user},
     ]
     tools, functions = _all_tools(), _all_functions()
@@ -411,6 +432,7 @@ def agent_chat(message, history: list[dict], deep_answer: bool = False):
     notes_tail = recent_notes()
     if notes_tail:
         system += "\n\nYour recent scratchpad notes:\n" + notes_tail
+    system += catalog_hint()
 
     summary, past_messages = compact_history(history)
     if summary:
