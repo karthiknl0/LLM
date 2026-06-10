@@ -8,7 +8,7 @@ from pathlib import Path
 
 import ollama
 
-from app import imagegen, rag, research, sandbox, screen, skills
+from app import gittools, imagegen, rag, research, sandbox, screen, skills
 from app.chat import _log_turn
 from app.config import CHAT_MODEL, WORKSPACE_DIR
 from app.memory import recall, recall_lessons, remember
@@ -26,8 +26,13 @@ SYSTEM_PROMPT = (
     "processing — never do arithmetic in your head. If run_python returns "
     "an error, read the error message, fix the code, and run it again — "
     "don't give up after one failure. Use look_at_screen when the user "
-    "refers to what is currently on their screen. Answer directly from "
-    "your own knowledge when no tool is needed. Be concise and practical."
+    "refers to what is currently on their screen. For git work: "
+    "git_clone a repo, edit its files under repos/<name>/ with "
+    "run_python, commit to an ai/ branch with git_commit, and call "
+    "git_push ONLY when the user explicitly asks to push — the push "
+    "creates a branch they review as a pull request. Answer directly "
+    "from your own knowledge when no tool is needed. Be concise and "
+    "practical."
 )
 
 TOOLS = [
@@ -82,6 +87,71 @@ TOOLS = [
                     "code": {"type": "string", "description": "Python code to run"}
                 },
                 "required": ["code"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "git_clone",
+            "description": "Clone a git repository into the workspace so its files can be read and edited.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "Repository URL"}
+                },
+                "required": ["url"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "git_status",
+            "description": "Show the current branch and uncommitted changes of a cloned repository.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "repo": {"type": "string", "description": "Repository folder name"}
+                },
+                "required": ["repo"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "git_commit",
+            "description": (
+                "Commit all changes in a cloned repository to a branch. "
+                "The branch must be named ai/<short-description>."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "repo": {"type": "string", "description": "Repository folder name"},
+                    "branch": {"type": "string", "description": "Branch like ai/fix-typo"},
+                    "message": {"type": "string", "description": "Commit message"},
+                },
+                "required": ["repo", "branch", "message"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "git_push",
+            "description": (
+                "Push the current ai/ branch of a cloned repository so the "
+                "user can open a pull request. Only use when the user "
+                "explicitly asks to push."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "repo": {"type": "string", "description": "Repository folder name"}
+                },
+                "required": ["repo"],
             },
         },
     },
@@ -146,6 +216,10 @@ TOOL_FUNCTIONS = {
     "generate_image": _run_generate_image,
     "run_python": sandbox.run_python,
     "look_at_screen": screen.look_at_screen,
+    "git_clone": gittools.git_clone,
+    "git_status": gittools.git_status,
+    "git_commit": gittools.git_commit,
+    "git_push": gittools.git_push,
 }
 
 TOOL_STATUS = {
@@ -154,6 +228,10 @@ TOOL_STATUS = {
     "generate_image": "Generating image",
     "run_python": "Running Python code",
     "look_at_screen": "Looking at your screen",
+    "git_clone": "Cloning repository",
+    "git_status": "Checking git status",
+    "git_commit": "Committing changes",
+    "git_push": "Pushing branch",
 }
 
 
