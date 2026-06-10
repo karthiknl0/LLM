@@ -24,6 +24,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Task scratchpad | Agent takes notes that survive context compaction | Automatic |
 | Playbook library | Authored workflows loaded on demand (data/playbooks/) | Automatic |
 | Prompt evals | Graded test sets + LLM-as-judge (Evals tab) | On demand |
+| Prompt helper | Rewrites a rough prompt using prompt-eng techniques | On demand |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
 | Look at your screen | Screenshot + vision model | Fast, stays on your machine |
@@ -333,6 +334,7 @@ app/
   notes.py      agent scratchpad for long tasks (survives compaction)
   playbooks.py  authored workflows, loaded on demand (data/playbooks/)
   evals.py      local prompt evaluations (Evals tab, data/evals/)
+  promptlab.py  prompt improver (Prompt Helper tab)
   research.py   web research with citations, plus deep-research mode
   browser.py    headless-browser verification of web pages
   sandbox.py    Python execution for the agent (data/workspace/)
