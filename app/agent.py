@@ -157,6 +157,33 @@ TOOL_STATUS = {
 }
 
 
+def run_with_tools(system: str, user: str, max_rounds: int = MAX_TOOL_ROUNDS) -> str:
+    """One-shot tool-using conversation, for other modules (team mode):
+    same tools as the Agent tab, no streaming."""
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user},
+    ]
+    for round_number in range(max_rounds + 1):
+        response = ollama.chat(model=CHAT_MODEL, messages=messages, tools=TOOLS)
+        msg = response["message"]
+        tool_calls = getattr(msg, "tool_calls", None) or []
+        if not tool_calls or round_number == max_rounds:
+            return msg["content"]
+        messages.append(msg)
+        for call in tool_calls:
+            name = call["function"]["name"]
+            arguments = dict(call["function"]["arguments"] or {})
+            try:
+                result = TOOL_FUNCTIONS[name](**arguments)
+            except Exception as exc:
+                result = f"Tool failed: {exc}"
+            messages.append(
+                {"role": "tool", "content": str(result)[:8000], "name": name}
+            )
+    return "(no answer)"
+
+
 def _describe_attachments(files: list[str], question: str) -> list[str]:
     """Turn attached files into context: images/videos go through the
     vision model; everything else is copied to the workspace so

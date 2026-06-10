@@ -11,10 +11,12 @@ from app.chat import stream_chat
 from app.config import CHAT_MODEL, DOCUMENTS_DIR, VISION_MODEL
 from app.imagegen import generate_image
 from app.memory import clear_memories, list_memories
+from app.personas import DEFAULT_NAME, list_personas
 from app.rag import ask_documents, index_documents
 from app.research import deep_research, research
 from app.screen import capture_and_analyze
 from app.status import run_checks
+from app.team import team_run
 from app.videogen import generate_video
 from app.vision import analyze_media
 from app.voice import transcribe_file, voice_chat
@@ -45,9 +47,43 @@ def build_app() -> gr.Blocks:
                 ],
             )
 
+        with gr.Tab("Team"):
+            gr.Markdown(
+                "Multiple specialist agents on one big task: a planner "
+                "splits it up, workers execute each part with the full "
+                "toolset, and a reviewer combines everything. Slower than "
+                "the Agent — use it for reports, comparisons, and "
+                "multi-part jobs."
+            )
+            team_task = gr.Textbox(
+                label="Task",
+                lines=3,
+                placeholder=(
+                    "e.g. Compare the top 3 open-source TTS models, check "
+                    "VRAM needs for each, and recommend one for a 16 GB GPU"
+                ),
+            )
+            team_btn = gr.Button("Run team", variant="primary")
+            team_out = gr.Markdown()
+            team_btn.click(team_run, inputs=team_task, outputs=team_out)
+
         with gr.Tab("Chat"):
-            gr.Markdown(f"Model: `{CHAT_MODEL}` (local via Ollama, no tools)")
-            gr.ChatInterface(fn=stream_chat, type="messages")
+            gr.Markdown(
+                f"Model: `{CHAT_MODEL}` (local via Ollama, no tools). Pick "
+                "a specialist persona below — or add your own as .md files "
+                "in `data/personas/`."
+            )
+            gr.ChatInterface(
+                fn=stream_chat,
+                type="messages",
+                additional_inputs=[
+                    gr.Dropdown(
+                        choices=list_personas(),
+                        value=DEFAULT_NAME,
+                        label="Persona",
+                    )
+                ],
+            )
 
         with gr.Tab("Voice"):
             gr.Markdown(
