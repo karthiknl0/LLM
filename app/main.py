@@ -13,6 +13,8 @@ from app.imagegen import generate_image
 from app.memory import clear_memories, list_memories
 from app.rag import ask_documents, index_documents
 from app.research import deep_research, research
+from app.screen import capture_and_analyze
+from app.status import run_checks
 from app.videogen import generate_video
 from app.vision import analyze_media
 from app.voice import transcribe_file, voice_chat
@@ -26,11 +28,14 @@ def build_app() -> gr.Blocks:
             gr.Markdown(
                 f"Model: `{CHAT_MODEL}` with tools — it decides by itself "
                 "when to search your documents, research the web, run "
-                "Python (workspace: `data/workspace/`), or generate an image."
+                "Python (workspace: `data/workspace/`), or generate an "
+                "image. Attach images, videos, or data files with the 📎 "
+                "button."
             )
             gr.ChatInterface(
                 fn=agent_chat,
                 type="messages",
+                multimodal=True,
                 additional_inputs=[
                     gr.Checkbox(
                         label="Deep answer — the model reviews its own draft "
@@ -143,6 +148,26 @@ def build_app() -> gr.Blocks:
                 outputs=vision_answer,
             )
 
+        with gr.Tab("Screen"):
+            gr.Markdown(
+                "Capture this computer's screen and ask the vision model "
+                "about it — errors, windows, anything you're looking at. "
+                "The screenshot never leaves your machine. (Captures the "
+                "desktop running the app, even when you browse from a phone.)"
+            )
+            screen_question = gr.Textbox(
+                label="Question (optional)",
+                placeholder="What does this error message mean?",
+            )
+            screen_btn = gr.Button("Capture & analyze", variant="primary")
+            screen_image = gr.Image(label="Screenshot")
+            screen_answer = gr.Markdown()
+            screen_btn.click(
+                capture_and_analyze,
+                inputs=screen_question,
+                outputs=[screen_image, screen_answer],
+            )
+
         with gr.Tab("Generate Image"):
             gr.Markdown("SDXL Turbo — a few seconds per image. Saved to `outputs/`.")
             image_prompt = gr.Textbox(
@@ -194,8 +219,25 @@ def build_app() -> gr.Blocks:
                 outputs=[video_out, video_status],
             )
 
+        with gr.Tab("Status"):
+            gr.Markdown(
+                "Checks that Ollama, the models, your GPU, and your data "
+                "are all in place — and what to do if not."
+            )
+            status_btn = gr.Button("Run checks", variant="primary")
+            status_out = gr.Markdown()
+            status_btn.click(run_checks, outputs=status_out)
+
     return demo
 
 
 if __name__ == "__main__":
-    build_app().launch(server_name="127.0.0.1", server_port=7860)
+    import os
+
+    # AIHUB_HOST=0.0.0.0 exposes the app on your LAN (e.g. for your
+    # phone); set AIHUB_PASSWORD to require a login when you do.
+    host = os.environ.get("AIHUB_HOST", "127.0.0.1")
+    port = int(os.environ.get("AIHUB_PORT", "7860"))
+    password = os.environ.get("AIHUB_PASSWORD")
+    auth = ("me", password) if password else None
+    build_app().launch(server_name=host, server_port=port, auth=auth)

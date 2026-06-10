@@ -17,6 +17,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Read your PDFs / Excel / code (RAG) | Local vector DB (ChromaDB) + Ollama embeddings | Fast |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
+| Look at your screen | Screenshot + vision model | Fast, stays on your machine |
 | Voice chat (speak & listen) | Whisper + Kokoro TTS | Fast, fully local |
 | Transcribe audio/video files | Whisper, timestamped | Fast |
 | Web research with citations | DuckDuckGo + local LLM | Fast (needs internet) |
@@ -63,22 +64,34 @@ bash setup/install.sh
 ## Run it
 
 ```bash
-ollama serve                     # if not already running as a service
-python -m app.main
+bash setup/start.sh              # starts Ollama too, if needed
 ```
 
-Open http://localhost:7860 in your browser.
+Open http://localhost:7860 in your browser. (Or manually: `ollama serve`
+then `python -m app.main`.)
+
+**From your phone:** `bash setup/start.sh --lan` makes the hub reachable
+on your home WiFi at `http://<your-pc-ip>:7860`. Set a password first if
+others use your network: `AIHUB_PASSWORD=secret bash setup/start.sh --lan`
+(login username is `me`). Your AI in your pocket — still running entirely
+on your desktop.
+
+If something doesn't work, the **Status** tab diagnoses it: Ollama not
+running, models not pulled, GPU not visible, low disk — with the exact
+command to fix each.
 
 ## Using it
 
 - **Agent** — the smartest way to use the hub: one chat where the model
   itself decides when to search your documents, research the web, run
   Python, or generate an image. You'll see *Searching your documents…*
-  style notes while it works. Drop data files into `data/workspace/` and
-  ask for analysis — the model writes and runs real code instead of
-  guessing at numbers (note: that code runs on your machine, with a
-  60-second timeout, confined to the workspace folder by convention).
-  Tick **Deep answer** to make it review its own draft before replying.
+  style notes while it works. Attach images or videos with 📎 and it
+  consults the vision model; attach CSVs or other data files and they
+  land in `data/workspace/` where the model writes and runs real code
+  instead of guessing at numbers (note: that code runs on your machine,
+  with a 60-second timeout, confined to the workspace folder by
+  convention). Tick **Deep answer** to make it review its own draft
+  before replying.
 - **Chat** — plain conversation with the local model, no tools.
 - **Voice** — record a question with your mic, hear the answer spoken back.
   (Spoken replies need `espeak-ng`: `sudo apt install espeak-ng` on Linux.)
@@ -94,6 +107,9 @@ Open http://localhost:7860 in your browser.
   scenes, 20 candidate passages are fetched and a local reranker model
   picks the best 5 — noticeably better answers than plain vector search.
 - **Vision** — upload an image or video and ask anything about it.
+- **Screen** — one click captures your screen and the vision model
+  answers questions about it ("what does this error mean?"). Also
+  available in the Agent: just say "look at my screen and …".
 - **Generate Image** — type a prompt, get an image in seconds.
   Saved to `outputs/`.
 - **Generate Video** — experimental. Short clips (~3–5 s). The model is
@@ -148,6 +164,13 @@ aider --model ollama/qwen3:14b
 Or install the **Continue** extension in VS Code and point it at Ollama
 for local autocomplete and chat inside your editor.
 
+## Bonus: evolve algorithms with your model
+
+`evolve/` contains a ready-to-run OpenEvolve experiment (open-source
+AlphaEvolve) pointed at your Ollama server — your local model mutates a
+program over generations and an evaluator keeps the correct, faster
+versions. See `evolve/README.md`.
+
 ## Project layout
 
 ```
@@ -159,6 +182,8 @@ app/
   rag.py        document indexing & retrieval, with reranking
   research.py   web research with citations, plus deep-research mode
   sandbox.py    Python execution for the agent (data/workspace/)
+  screen.py     screen capture + vision analysis
+  status.py     system health checks (Status tab)
   vision.py     image & video understanding
   voice.py      voice chat (Whisper + Kokoro TTS) & file transcription
   imagegen.py   Stable Diffusion XL Turbo image generation
@@ -167,6 +192,7 @@ finetune/
   export_data.py    build training dataset from your chat logs
   train.py          QLoRA fine-tuning (16 GB GPU)
   merge_and_export.py  merge + import into Ollama as your own model
+evolve/           OpenEvolve experiment wired to local Ollama
 data/documents/ put your files here, then index them
 data/chatlogs/  your conversations (auto-logged, used for fine-tuning)
 outputs/        generated images & videos

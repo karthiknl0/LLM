@@ -3,14 +3,19 @@ search your documents, research the web, or generate an image — using
 Ollama's native tool calling. Fully local routing.
 """
 
-from app import imagegen, rag, research, sandbox
-from app.chat import _log_turn
-from app.config import CHAT_MODEL
-from app.memory import recall, recall_lessons, remember
+import shutil
+from pathlib import Path
 
 import ollama
 
-MAX_TOOL_ROUNDS = 4
+from app import imagegen, rag, research, sandbox, screen
+from app.chat import _log_turn
+from app.config import CHAT_MODEL, WORKSPACE_DIR
+from app.memory import recall, recall_lessons, remember
+from app.vision import VIDEO_EXTENSIONS, analyze_media
+
+MAX_TOOL_ROUNDS = 6
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
 
 SYSTEM_PROMPT = (
     "You are a helpful local AI assistant running entirely on the user's "
@@ -18,7 +23,10 @@ SYSTEM_PROMPT = (
     "the user's own files, web_research for current events or anything "
     "you're unsure about, generate_image when asked to create a picture, "
     "and run_python for any calculation, data analysis, or file "
-    "processing — never do arithmetic in your head. Answer directly from "
+    "processing — never do arithmetic in your head. If run_python returns "
+    "an error, read the error message, fix the code, and run it again — "
+    "don't give up after one failure. Use look_at_screen when the user "
+    "refers to what is currently on their screen. Answer directly from "
     "your own knowledge when no tool is needed. Be concise and practical."
 )
 
@@ -80,6 +88,27 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "look_at_screen",
+            "description": (
+                "Capture the user's current screen and analyze it with the "
+                "vision model. Use when the user asks about something on "
+                "their screen right now (an error, a window, a page)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "question": {
+                        "type": "string",
+                        "description": "What to look for on the screen",
+                    }
+                },
+                "required": ["question"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "generate_image",
             "description": "Create an image from a text prompt and save it to disk.",
             "parameters": {
@@ -116,6 +145,7 @@ TOOL_FUNCTIONS = {
     "web_research": _run_web_research,
     "generate_image": _run_generate_image,
     "run_python": sandbox.run_python,
+    "look_at_screen": screen.look_at_screen,
 }
 
 TOOL_STATUS = {
@@ -123,19 +153,51 @@ TOOL_STATUS = {
     "web_research": "Researching the web",
     "generate_image": "Generating image",
     "run_python": "Running Python code",
+    "look_at_screen": "Looking at your screen",
 }
 
 
-def agent_chat(message: str, history: list[dict], deep_answer: bool = False):
+def _describe_attachments(files: list[str], question: str) -> list[str]:
+    """Turn attached files into context: images/videos go through the
+    vision model; everything else is copied to the workspace so
+    run_python can use it."""
+    notes = []
+    for path in files[:3]:
+        name = Path(path).name
+        suffix = Path(path).suffix.lower()
+        if suffix in IMAGE_EXTENSIONS or suffix in VIDEO_EXTENSIONS:
+            analysis = analyze_media(path, question or "Describe this in detail.")
+            notes.append(f"[Attached '{name}' — vision model analysis: {analysis}]")
+        else:
+            try:
+                shutil.copy(path, WORKSPACE_DIR / name)
+                notes.append(
+                    f"[Attached file saved to the workspace as '{name}' — "
+                    "use run_python to read it.]"
+                )
+            except Exception as exc:
+                notes.append(f"[Could not save attachment '{name}': {exc}]")
+    return notes
+
+
+def agent_chat(message, history: list[dict], deep_answer: bool = False):
     """Generator for the Agent tab: yields tool-use progress, then the
     final answer. With deep_answer, the model reviews and corrects its
     own draft before replying (slower, more reliable)."""
+    files = []
+    if isinstance(message, dict):  # multimodal input: {"text", "files"}
+        files = list(message.get("files") or [])
+        message = (message.get("text") or "").strip()
+    if not message and not files:
+        yield "Say something or attach a file."
+        return
+
     system = SYSTEM_PROMPT
-    memories = recall(message)
+    memories = recall(message) if message else []
     if memories:
         system += "\n\nThings you remember about the user:\n"
         system += "\n".join(f"- {m}" for m in memories)
-    lessons = recall_lessons(message)
+    lessons = recall_lessons(message) if message else []
     if lessons:
         system += "\n\nStanding instructions learned from past corrections:\n"
         system += "\n".join(f"- {lesson}" for lesson in lessons)
@@ -146,9 +208,15 @@ def agent_chat(message: str, history: list[dict], deep_answer: bool = False):
         for m in history
         if m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str)
     ]
-    messages.append({"role": "user", "content": message})
-
     steps = []
+    user_content = message
+    if files:
+        steps.append("*Looking at the attachment…*")
+        yield "\n\n".join(steps)
+        notes = _describe_attachments(files, message)
+        user_content = (message + "\n\n" + "\n".join(notes)).strip()
+    messages.append({"role": "user", "content": user_content})
+
     reply = "(no answer)"
     for _round in range(MAX_TOOL_ROUNDS + 1):
         response = ollama.chat(model=CHAT_MODEL, messages=messages, tools=TOOLS)

@@ -1,0 +1,29 @@
+# OpenEvolve configuration wired to the local Ollama server.
+# Everything runs on your own machine — no API keys.
+
+max_iterations: 50
+checkpoint_interval: 10
+
+llm:
+  api_base: "http://localhost:11434/v1"
+  api_key: "ollama"            # Ollama ignores it, but the field is required
+  models:
+    - name: "qwen3:14b"
+      weight: 1.0
+  temperature: 0.7
+  max_tokens: 4096
+
+prompt:
+  system_message: >
+    You are an expert Python performance engineer. Improve the function so
+    that it returns the exact same correct result, much faster. Use only
+    pure Python and the standard library. Think about better algorithms
+    (e.g. avoiding redundant work), not just micro-optimizations.
+
+database:
+  population_size: 30
+  num_islands: 2
+
+evaluator:
+  timeout: 60
+  parallel_evaluations: 1

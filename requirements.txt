@@ -22,6 +22,9 @@ soundfile>=0.12
 # Retrieval reranker
 sentence-transformers>=3.0
 
+# Screen capture (Screen tab + agent look_at_screen tool)
+mss>=9.0
+
 # Web research (free search + page extraction, no API keys)
 ddgs>=9.0
 trafilatura>=1.12
