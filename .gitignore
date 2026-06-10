@@ -16,6 +16,9 @@ outputs/*
 finetune/adapter/
 finetune/merged/
 
+# evolution experiment outputs
+openevolve_output/
+
 # model caches
 .cache/
 *.safetensors

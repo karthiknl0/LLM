@@ -148,6 +148,13 @@ aider --model ollama/qwen3:14b
 Or install the **Continue** extension in VS Code and point it at Ollama
 for local autocomplete and chat inside your editor.
 
+## Bonus: evolve algorithms with your model
+
+`evolve/` contains a ready-to-run OpenEvolve experiment (open-source
+AlphaEvolve) pointed at your Ollama server — your local model mutates a
+program over generations and an evaluator keeps the correct, faster
+versions. See `evolve/README.md`.
+
 ## Project layout
 
 ```
@@ -167,6 +174,7 @@ finetune/
   export_data.py    build training dataset from your chat logs
   train.py          QLoRA fine-tuning (16 GB GPU)
   merge_and_export.py  merge + import into Ollama as your own model
+evolve/           OpenEvolve experiment wired to local Ollama
 data/documents/ put your files here, then index them
 data/chatlogs/  your conversations (auto-logged, used for fine-tuning)
 outputs/        generated images & videos
