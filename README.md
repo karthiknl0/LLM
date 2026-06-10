@@ -21,6 +21,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Edit & push code to GitHub | Guarded git tools — ai/* branches only, you merge via PR | Supervised |
 | Verify web pages in a browser | Headless Chromium + vision model + console errors | Fast |
 | Plug-in tools via MCP | Any Model Context Protocol server (data/mcp.json) | Depends on server |
+| Task scratchpad | Agent takes notes that survive context compaction | Automatic |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
 | Look at your screen | Screenshot + vision model | Fast, stays on your machine |
@@ -204,7 +205,10 @@ your style and becomes `my-ai` in Ollama. Full guide: `finetune/README.md`.
 
 - Long conversations are compacted automatically: when a chat outgrows
   the context window, older turns are summarized and recent turns kept
-  word-for-word — the model stops silently forgetting the start.
+  word-for-word — the model stops silently forgetting the start. During
+  long tasks the agent also keeps a scratchpad (`data/workspace/NOTES.md`)
+  whose recent notes are always in view, so working state survives
+  compaction.
 - Qwen 3 14B (4-bit) uses ~10 GB VRAM — fits fully on your GPU and is fast.
 - Only one heavy model runs on the GPU at a time. The app loads image/video
   generators on demand and frees them afterwards; Ollama similarly swaps
@@ -301,6 +305,7 @@ app/
   repo.py       clone GitHub repos into the document index
   gittools.py   guarded git tools: agent commits to ai/* branches
   mcp_client.py MCP plug-in tools for the agent (data/mcp.json)
+  notes.py      agent scratchpad for long tasks (survives compaction)
   research.py   web research with citations, plus deep-research mode
   browser.py    headless-browser verification of web pages
   sandbox.py    Python execution for the agent (data/workspace/)
