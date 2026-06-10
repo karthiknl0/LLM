@@ -29,6 +29,7 @@ TRAINING_DIR = ROOT / "data" / "training"    # prepared fine-tuning dataset
 WORKSPACE_DIR = ROOT / "data" / "workspace"  # agent-run Python works here
 PERSONAS_DIR = ROOT / "data" / "personas"    # editable specialist prompts
 SKILLS_DIR = ROOT / "data" / "skills"        # functions the agent taught itself
+PLAYBOOKS_DIR = ROOT / "data" / "playbooks"  # authored reusable workflows
 
 # --- RAG settings ---
 CHUNK_SIZE = 1200        # characters per chunk
@@ -48,5 +49,6 @@ VIDEO_FRAMES_TO_SAMPLE = 8  # frames sent to the vision model per video
 for _dir in (
     DOCUMENTS_DIR, VECTOR_DB_DIR, OUTPUTS_DIR,
     CHATLOG_DIR, TRAINING_DIR, WORKSPACE_DIR, PERSONAS_DIR, SKILLS_DIR,
+    PLAYBOOKS_DIR,
 ):
     _dir.mkdir(parents=True, exist_ok=True)

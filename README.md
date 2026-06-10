@@ -21,6 +21,10 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Edit & push code to GitHub | Guarded git tools — ai/* branches only, you merge via PR | Supervised |
 | Verify web pages in a browser | Headless Chromium + vision model + console errors | Fast |
 | Plug-in tools via MCP | Any Model Context Protocol server (data/mcp.json) | Depends on server |
+| Task scratchpad | Agent takes notes that survive context compaction | Automatic |
+| Playbook library | Authored workflows loaded on demand (data/playbooks/) | Automatic |
+| Prompt evals | Graded test sets + LLM-as-judge (Evals tab) | On demand |
+| Prompt helper | Rewrites a rough prompt using prompt-eng techniques | On demand |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
 | Look at your screen | Screenshot + vision model | Fast, stays on your machine |
@@ -204,7 +208,10 @@ your style and becomes `my-ai` in Ollama. Full guide: `finetune/README.md`.
 
 - Long conversations are compacted automatically: when a chat outgrows
   the context window, older turns are summarized and recent turns kept
-  word-for-word — the model stops silently forgetting the start.
+  word-for-word — the model stops silently forgetting the start. During
+  long tasks the agent also keeps a scratchpad (`data/workspace/NOTES.md`)
+  whose recent notes are always in view, so working state survives
+  compaction.
 - Qwen 3 14B (4-bit) uses ~10 GB VRAM — fits fully on your GPU and is fast.
 - Only one heavy model runs on the GPU at a time. The app loads image/video
   generators on demand and frees them afterwards; Ollama similarly swaps
@@ -229,6 +236,21 @@ aider --model ollama/qwen3:14b
 Or install the **Continue** extension in VS Code and point it at Ollama
 for local autocomplete and chat inside your editor.
 
+## Playbooks: teach the agent your workflows
+
+`data/playbooks/` holds authored step-by-step workflows as `.md` files
+(frontmatter + a When-to-use / Workflow / Verification body). The agent
+always sees the cheap one-line descriptions, and loads a playbook's full
+text only when a task matches — progressive disclosure, so many
+playbooks cost almost no context until used. Write your own for
+recurring work ("deploy my site", "review a PR"), or drop in a published
+library that follows the same format (e.g. an authorized
+defensive-security playbook set). Two examples are seeded on first run.
+
+This differs from the **Skills** tab (functions the agent writes itself)
+and **personas** (whole-chat system prompts): playbooks are reference
+procedures you author once and the agent follows on demand.
+
 ## MCP: plug-in tools for the agent
 
 The agent speaks [Model Context Protocol](https://modelcontextprotocol.io) —
@@ -252,6 +274,14 @@ Restart the app; each server's tools appear to the agent automatically
 Servers run as local subprocesses. Only add servers you trust — each one
 is code running on your machine with the powers you give it, and the
 agent will be able to call everything it offers.
+
+Starter examples (filesystem, SQLite) are in `setup/mcp.example.json`;
+browse [awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
+for the full catalog. Two rules of thumb: prefer local-first servers
+that need no API keys, and keep the count low — every connected tool
+definition eats context, and a 14B model chooses tools best from a
+short, distinct list. One or two servers that match your real workflow
+beat ten installed "just in case".
 
 ## Agent + GitHub (guarded)
 
@@ -301,6 +331,10 @@ app/
   repo.py       clone GitHub repos into the document index
   gittools.py   guarded git tools: agent commits to ai/* branches
   mcp_client.py MCP plug-in tools for the agent (data/mcp.json)
+  notes.py      agent scratchpad for long tasks (survives compaction)
+  playbooks.py  authored workflows, loaded on demand (data/playbooks/)
+  evals.py      local prompt evaluations (Evals tab, data/evals/)
+  promptlab.py  prompt improver (Prompt Helper tab)
   research.py   web research with citations, plus deep-research mode
   browser.py    headless-browser verification of web pages
   sandbox.py    Python execution for the agent (data/workspace/)

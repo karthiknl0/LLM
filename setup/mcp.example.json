@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+
+    "_comment_filesystem": "Lets the agent read/write chosen folders beyond its workspace. Change the path! Needs Node.js (winget install OpenJS.NodeJS).",
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:/Users/you/Documents/ai-shared"]
+    },
+
+    "_comment_sqlite": "Query a local SQLite database in plain English. Needs uv (winget install astral-sh.uv). Change the db path.",
+    "sqlite": {
+      "command": "uvx",
+      "args": ["mcp-server-sqlite", "--db-path", "C:/Users/you/data/mydata.db"]
+    }
+  },
+
+  "_usage": "Copy the entries you want into data/mcp.json (remove _comment keys), fix the paths, restart the app. Keep the server count low: every server's tools are added to the model's context, and a 14B model picks tools best from a short list."
+}

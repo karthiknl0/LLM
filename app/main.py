@@ -17,6 +17,8 @@ from app.repo import add_repo
 from app.research import deep_research, research
 from app.screen import capture_and_analyze
 from app.skills import list_skills
+from app.evals import list_sets, run_eval
+from app.promptlab import improve_prompt
 from app.status import run_checks
 from app.team import team_run
 from app.videogen import generate_video
@@ -284,6 +286,46 @@ def build_app() -> gr.Blocks:
                 headers=["Skill", "Description"], interactive=False
             )
             skills_refresh.click(list_skills, outputs=skills_table)
+
+        with gr.Tab("Prompt Helper"):
+            gr.Markdown(
+                "Paste a rough prompt; get a stronger version that applies "
+                "prompt-engineering techniques (clear instructions, role, "
+                "data separation, output format, examples). Handy for "
+                "writing personas, playbooks, and eval criteria."
+            )
+            prompt_in = gr.Textbox(
+                label="Your draft prompt", lines=5,
+                placeholder="e.g. summarize this article",
+            )
+            prompt_btn = gr.Button("Improve", variant="primary")
+            prompt_out = gr.Markdown()
+            prompt_btn.click(improve_prompt, inputs=prompt_in, outputs=prompt_out)
+
+        with gr.Tab("Evals"):
+            gr.Markdown(
+                "Measure prompt quality instead of guessing. The model "
+                "answers each test case, then grades itself against the "
+                "criteria (LLM-as-judge). Run the same set under different "
+                "personas to compare. Add your own sets as JSONL files in "
+                "`data/evals/`."
+            )
+            with gr.Row():
+                eval_set = gr.Dropdown(
+                    choices=list_sets(),
+                    value=(list_sets() or [None])[0],
+                    label="Eval set",
+                )
+                eval_persona = gr.Dropdown(
+                    choices=list_personas(),
+                    value=DEFAULT_NAME,
+                    label="Persona to test",
+                )
+            eval_btn = gr.Button("Run eval", variant="primary")
+            eval_out = gr.Markdown()
+            eval_btn.click(
+                run_eval, inputs=[eval_set, eval_persona], outputs=eval_out
+            )
 
         with gr.Tab("Status"):
             gr.Markdown(
