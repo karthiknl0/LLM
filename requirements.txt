@@ -1,0 +1,23 @@
+# Note: install torch separately with the right CUDA index URL first:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121
+
+gradio>=4.44
+ollama>=0.4
+
+# Document reading / RAG
+chromadb>=0.5
+pypdf>=4.0
+pandas>=2.0
+openpyxl>=3.1
+
+# Vision (video frame extraction)
+opencv-python>=4.9
+pillow>=10.0
+
+# Image / video generation
+diffusers>=0.31
+transformers>=4.44
+accelerate>=0.33
+safetensors>=0.4
+sentencepiece>=0.2
+imageio[ffmpeg]>=2.34
