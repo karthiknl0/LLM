@@ -201,6 +201,9 @@ your style and becomes `my-ai` in Ollama. Full guide: `finetune/README.md`.
 
 ## Honest notes on your hardware
 
+- Long conversations are compacted automatically: when a chat outgrows
+  the context window, older turns are summarized and recent turns kept
+  word-for-word — the model stops silently forgetting the start.
 - Qwen 3 14B (4-bit) uses ~10 GB VRAM — fits fully on your GPU and is fast.
 - Only one heavy model runs on the GPU at a time. The app loads image/video
   generators on demand and frees them afterwards; Ollama similarly swaps
@@ -267,6 +270,7 @@ app/
   agent.py      agent mode: chat with automatic tool use
   team.py       multi-agent team: planner → workers → reviewer
   chat.py       chat with the local LLM
+  history.py    long-conversation compaction (summarize older turns)
   personas.py   switchable specialist prompts (data/personas/*.md)
   rag.py        document indexing & retrieval, with reranking
   repo.py       clone GitHub repos into the document index

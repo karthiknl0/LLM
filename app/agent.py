@@ -12,6 +12,7 @@ from app import gittools, imagegen, rag, research, sandbox, screen, skills
 from app.browser import verify_in_browser
 from app.chat import _log_turn
 from app.config import CHAT_MODEL, WORKSPACE_DIR
+from app.history import compact_history
 from app.memory import recall, recall_lessons, remember
 from app.vision import VIDEO_EXTENSIONS, analyze_media
 
@@ -364,12 +365,10 @@ def agent_chat(message, history: list[dict], deep_answer: bool = False):
         system += "\n".join(f"- {lesson}" for lesson in lessons)
     system += _skill_hints(message)
 
-    messages = [{"role": "system", "content": system}]
-    messages += [
-        {"role": m["role"], "content": m["content"]}
-        for m in history
-        if m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str)
-    ]
+    summary, past_messages = compact_history(history)
+    if summary:
+        system += "\n\nSummary of earlier parts of this conversation:\n" + summary
+    messages = [{"role": "system", "content": system}] + past_messages
     steps = []
     user_content = message
     if files:
