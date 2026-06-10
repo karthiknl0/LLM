@@ -257,6 +257,14 @@ Servers run as local subprocesses. Only add servers you trust — each one
 is code running on your machine with the powers you give it, and the
 agent will be able to call everything it offers.
 
+Starter examples (filesystem, SQLite) are in `setup/mcp.example.json`;
+browse [awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
+for the full catalog. Two rules of thumb: prefer local-first servers
+that need no API keys, and keep the count low — every connected tool
+definition eats context, and a 14B model chooses tools best from a
+short, distinct list. One or two servers that match your real workflow
+beat ten installed "just in case".
+
 ## Agent + GitHub (guarded)
 
 The agent can clone a repo, edit it, commit, and push — with guardrails
