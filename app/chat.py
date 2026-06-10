@@ -10,6 +10,7 @@ import json
 import ollama
 
 from app.config import CHAT_MODEL, CHATLOG_DIR
+from app.history import compact_history
 from app.memory import recall, recall_lessons, remember
 from app.personas import DEFAULT_NAME, get_prompt
 
@@ -42,12 +43,10 @@ def stream_chat(message: str, history: list[dict], persona: str = DEFAULT_NAME):
         system += "\n\nStanding instructions learned from past corrections:\n"
         system += "\n".join(f"- {lesson}" for lesson in lessons)
 
-    messages = [{"role": "system", "content": system}]
-    messages += [
-        {"role": m["role"], "content": m["content"]}
-        for m in history
-        if m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str)
-    ]
+    summary, past_messages = compact_history(history)
+    if summary:
+        system += "\n\nSummary of earlier parts of this conversation:\n" + summary
+    messages = [{"role": "system", "content": system}] + past_messages
     messages.append({"role": "user", "content": message})
 
     reply = ""

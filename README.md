@@ -19,6 +19,8 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Read your PDFs / Excel / code (RAG) | Local vector DB (ChromaDB) + Ollama embeddings | Fast |
 | Chat with any GitHub repo | Shallow clone + the same RAG pipeline | Fast |
 | Edit & push code to GitHub | Guarded git tools — ai/* branches only, you merge via PR | Supervised |
+| Verify web pages in a browser | Headless Chromium + vision model + console errors | Fast |
+| Plug-in tools via MCP | Any Model Context Protocol server (data/mcp.json) | Depends on server |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
 | Look at your screen | Screenshot + vision model | Fast, stays on your machine |
@@ -133,7 +135,9 @@ command to fix each.
   instead of guessing at numbers (note: that code runs on your machine,
   with a 60-second timeout, confined to the workspace folder by
   convention). Tick **Deep answer** to make it review its own draft
-  before replying.
+  before replying. When it builds or changes a web page, it verifies
+  the result in a headless browser — screenshot checked by the vision
+  model, console errors included — before telling you it's done.
 - **Team** — multi-agent mode for big jobs: a planner agent splits your
   task into subtasks, worker agents execute each one with the full
   toolset, and a reviewer agent merges the results into one answer.
@@ -198,6 +202,9 @@ your style and becomes `my-ai` in Ollama. Full guide: `finetune/README.md`.
 
 ## Honest notes on your hardware
 
+- Long conversations are compacted automatically: when a chat outgrows
+  the context window, older turns are summarized and recent turns kept
+  word-for-word — the model stops silently forgetting the start.
 - Qwen 3 14B (4-bit) uses ~10 GB VRAM — fits fully on your GPU and is fast.
 - Only one heavy model runs on the GPU at a time. The app loads image/video
   generators on demand and frees them afterwards; Ollama similarly swaps
@@ -221,6 +228,30 @@ aider --model ollama/qwen3:14b
 
 Or install the **Continue** extension in VS Code and point it at Ollama
 for local autocomplete and chat inside your editor.
+
+## MCP: plug-in tools for the agent
+
+The agent speaks [Model Context Protocol](https://modelcontextprotocol.io) —
+the same plug-in standard Claude uses. Hundreds of community servers
+exist (filesystem, SQLite/Postgres, Home Assistant, browsers, Slack, …).
+Add them in `data/mcp.json` (Claude Desktop's config shape):
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/you/notes"]
+    }
+  }
+}
+```
+
+Restart the app; each server's tools appear to the agent automatically
+(named `mcp_<server>_<tool>`), and the Status tab shows what connected.
+Servers run as local subprocesses. Only add servers you trust — each one
+is code running on your machine with the powers you give it, and the
+agent will be able to call everything it offers.
 
 ## Agent + GitHub (guarded)
 
@@ -264,11 +295,14 @@ app/
   agent.py      agent mode: chat with automatic tool use
   team.py       multi-agent team: planner → workers → reviewer
   chat.py       chat with the local LLM
+  history.py    long-conversation compaction (summarize older turns)
   personas.py   switchable specialist prompts (data/personas/*.md)
   rag.py        document indexing & retrieval, with reranking
   repo.py       clone GitHub repos into the document index
   gittools.py   guarded git tools: agent commits to ai/* branches
+  mcp_client.py MCP plug-in tools for the agent (data/mcp.json)
   research.py   web research with citations, plus deep-research mode
+  browser.py    headless-browser verification of web pages
   sandbox.py    Python execution for the agent (data/workspace/)
   skills.py     self-built skill library (data/skills/)
   screen.py     screen capture + vision analysis

@@ -25,6 +25,10 @@ Write-Host "==> Installing PyTorch with CUDA 12.1"
 Write-Host "==> Installing Python dependencies"
 & .venv\Scripts\pip.exe install -r requirements.txt
 
+Write-Host "==> Installing headless Chromium for browser verification"
+try { & .venv\Scripts\python.exe -m playwright install chromium }
+catch { Write-Host "    (skipped - browser verification disabled)" }
+
 Write-Host ""
 Write-Host "Done. Start your hub with:"
 Write-Host "  powershell -ExecutionPolicy Bypass -File setup\start.ps1"

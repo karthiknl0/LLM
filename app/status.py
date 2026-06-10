@@ -86,11 +86,29 @@ def _check_data() -> list[str]:
     return lines
 
 
+def _check_mcp() -> list[str]:
+    from app import mcp_client
+
+    servers = mcp_client.configured_servers()
+    if not servers:
+        return [
+            f"{OK} No MCP servers configured (optional — add them in "
+            "data/mcp.json)"
+        ]
+    tools = mcp_client.mcp_tools()
+    return [
+        f"{OK if tools else WARN} {len(servers)} MCP server(s) configured, "
+        f"{len(tools)} tool(s) available"
+        + ("" if tools else " — check the terminal for connection errors")
+    ]
+
+
 def run_checks() -> str:
     sections = (
         ("Ollama & models", _check_ollama),
         ("GPU", _check_gpu),
         ("Data", _check_data),
+        ("MCP servers", _check_mcp),
     )
     report = ["## System status\n"]
     for title, check in sections:
