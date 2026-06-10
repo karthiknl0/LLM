@@ -14,6 +14,7 @@ import sys
 from app.config import SKILLS_DIR, WORKSPACE_DIR
 
 TIMEOUT_SECONDS = 60
+COMMAND_TIMEOUT_SECONDS = 600   # builds and test suites can be slow
 MAX_OUTPUT_CHARS = 4000
 
 
@@ -65,3 +66,47 @@ def run_python(code: str) -> str:
     if new_files:
         output += "\n\nFiles created in data/workspace/: " + ", ".join(new_files)
     return output
+
+
+def _resolve_cwd(cwd: str):
+    """A working directory inside the workspace, or None if it escapes."""
+    base = WORKSPACE_DIR.resolve()
+    target = (base / (cwd or "")).resolve()
+    if target != base and base not in target.parents:
+        return None
+    return target if target.is_dir() else None
+
+
+def run_command(command: str, cwd: str = "") -> str:
+    """Run a build/test/shell command inside the workspace (e.g. in a
+    cloned repo under repos/<name>) and return its output and exit code.
+
+    Honest note: like run_python, this executes on your machine with
+    your account — confined to the workspace by directory, not a hard
+    sandbox. Use it to build and test code the agent edits."""
+    if not (command or "").strip():
+        return "No command provided."
+    target = _resolve_cwd(cwd)
+    if target is None:
+        return (
+            f"Working directory '{cwd}' is outside the workspace or does "
+            "not exist. Use a path under data/workspace/ (e.g. repos/<name>)."
+        )
+    try:
+        proc = subprocess.run(
+            command,
+            shell=True,
+            cwd=target,
+            capture_output=True,
+            text=True,
+            timeout=COMMAND_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        return f"Command timed out after {COMMAND_TIMEOUT_SECONDS} seconds."
+
+    output = (proc.stdout or "") + (("\n" + proc.stderr) if proc.stderr else "")
+    output = output.strip() or "(no output)"
+    if len(output) > MAX_OUTPUT_CHARS:
+        output = "... (earlier output truncated)\n" + output[-MAX_OUTPUT_CHARS:]
+    status = "succeeded" if proc.returncode == 0 else f"failed (exit {proc.returncode})"
+    return f"Command {status}.\n\n{output}"

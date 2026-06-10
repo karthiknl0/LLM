@@ -18,6 +18,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Deep research / deep answer | Multi-angle search + self-review passes | Slower, better |
 | Read your PDFs / Excel / code (RAG) | Local vector DB (ChromaDB) + Ollama embeddings | Fast |
 | Chat with any GitHub repo | Shallow clone + the same RAG pipeline | Fast |
+| Edit, build & test code | Clone a repo, edit, run its tests/build, fix failures | Supervised |
 | Edit & push code to GitHub | Guarded git tools — ai/* branches only, you merge via PR | Supervised |
 | Verify web pages in a browser | Headless Chromium + vision model + console errors | Fast |
 | Plug-in tools via MCP | Any Model Context Protocol server (data/mcp.json) | Depends on server |
@@ -285,8 +286,10 @@ beat ten installed "just in case".
 
 ## Agent + GitHub (guarded)
 
-The agent can clone a repo, edit it, commit, and push — with guardrails
-enforced in code, not prompts:
+The agent can clone a repo, edit it, build and test it (`run_command`
+in the repo folder — `pytest`, `npm test`, `npm run build`, …, with a
+10-minute timeout), then commit and push — with guardrails enforced in
+code, not prompts:
 
 - work happens only in `data/workspace/repos/`
 - commits only land on branches named `ai/<something>`

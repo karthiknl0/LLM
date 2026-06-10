@@ -45,8 +45,11 @@ SYSTEM_PROMPT = (
     "code that solves the problem — no speculative features or "
     "abstractions. Change only what the task requires; match the "
     "existing style and never rewrite unrelated code. Verify before "
-    "declaring done: run the code, and for bug fixes reproduce the bug "
-    "first, then show it fixed. After building or changing anything "
+    "declaring done: after editing code in a cloned repo, build and test "
+    "it with run_command (e.g. 'pytest -q', 'npm test', 'npm run build', "
+    "with cwd set to repos/<name>) and fix any failures before "
+    "finishing — for bug fixes, run the test that reproduces the bug "
+    "first, then show it passing. After building or changing anything "
     "with a web page, verify_in_browser it (use file:// for HTML files "
     "in the workspace) and fix what the check reveals before answering."
 )
@@ -103,6 +106,29 @@ TOOLS = [
                     "code": {"type": "string", "description": "Python code to run"}
                 },
                 "required": ["code"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "run_command",
+            "description": (
+                "Run a build, test, or shell command inside the workspace "
+                "and get its output and exit code. Set cwd to the repo "
+                "folder (e.g. repos/<name>). Use to build and test code "
+                "you edit: pytest, npm test, npm run build, make, etc."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "command": {"type": "string", "description": "Shell command to run"},
+                    "cwd": {
+                        "type": "string",
+                        "description": "Dir under the workspace, e.g. repos/myrepo",
+                    },
+                },
+                "required": ["command"],
             },
         },
     },
@@ -307,6 +333,7 @@ TOOL_FUNCTIONS = {
     "take_note": take_note,
     "read_notes": read_notes,
     "load_playbook": load_playbook,
+    "run_command": sandbox.run_command,
     "git_clone": gittools.git_clone,
     "git_status": gittools.git_status,
     "git_commit": gittools.git_commit,
@@ -323,6 +350,7 @@ TOOL_STATUS = {
     "take_note": "Taking a note",
     "read_notes": "Reading notes",
     "load_playbook": "Loading a playbook",
+    "run_command": "Building / running tests",
     "git_clone": "Cloning repository",
     "git_status": "Checking git status",
     "git_commit": "Committing changes",
