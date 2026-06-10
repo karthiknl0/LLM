@@ -14,6 +14,14 @@ openpyxl>=3.1
 opencv-python>=4.9
 pillow>=10.0
 
+# Voice (speech-to-text + text-to-speech; TTS needs the espeak-ng system package)
+faster-whisper>=1.0
+kokoro>=0.9
+soundfile>=0.12
+
+# Retrieval reranker
+sentence-transformers>=3.0
+
 # Image / video generation
 diffusers>=0.31
 transformers>=4.44

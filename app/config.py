@@ -11,6 +11,14 @@ EMBED_MODEL = "nomic-embed-text"  # embeddings for document search
 IMAGE_MODEL = "stabilityai/sdxl-turbo"
 VIDEO_MODEL = "Lightricks/LTX-Video"
 
+# --- Voice ---
+WHISPER_MODEL = "small"   # speech-to-text; "large-v3" = best accuracy, slower
+TTS_VOICE = "af_heart"    # Kokoro voice for spoken replies
+
+# --- Retrieval reranker (improves document answers) ---
+RERANKER_MODEL = "BAAI/bge-reranker-v2-m3"
+RERANK_CANDIDATES = 20    # chunks fetched before reranking down to TOP_K
+
 # --- Paths ---
 ROOT = Path(__file__).resolve().parent.parent
 DOCUMENTS_DIR = ROOT / "data" / "documents"

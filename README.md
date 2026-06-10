@@ -13,6 +13,8 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Read your PDFs / Excel / code (RAG) | Local vector DB (ChromaDB) + Ollama embeddings | Fast |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
+| Voice chat (speak & listen) | Whisper + Kokoro TTS | Fast, fully local |
+| Transcribe audio/video files | Whisper, timestamped | Fast |
 | Generate images | Stable Diffusion XL Turbo | ~2–5 s per image |
 | Generate videos | LTX-Video | Experimental — short clips, several minutes each |
 | Remember you across sessions | Local long-term memory (ChromaDB) | Automatic |
@@ -65,8 +67,14 @@ Open http://localhost:7860 in your browser.
 ## Using it
 
 - **Chat** — talk to your local model. It never leaves your machine.
+- **Voice** — record a question with your mic, hear the answer spoken back.
+  (Spoken replies need `espeak-ng`: `sudo apt install espeak-ng` on Linux.)
+- **Transcribe** — drop in a meeting recording, voice note, or video and
+  get a timestamped transcript.
 - **Documents** — drop PDFs, Excel files, and code into `data/documents/`,
-  click *Index documents*, then ask questions about them.
+  click *Index documents*, then ask questions about them. Behind the
+  scenes, 20 candidate passages are fetched and a local reranker model
+  picks the best 5 — noticeably better answers than plain vector search.
 - **Vision** — upload an image or video and ask anything about it.
 - **Generate Image** — type a prompt, get an image in seconds.
   Saved to `outputs/`.
@@ -113,8 +121,9 @@ app/
   main.py       Gradio UI (tabs for each capability)
   config.py     model names & paths — change models here
   chat.py       chat with the local LLM
-  rag.py        document indexing & retrieval (PDF, Excel, CSV, code)
+  rag.py        document indexing & retrieval, with reranking
   vision.py     image & video understanding
+  voice.py      voice chat (Whisper + Kokoro TTS) & file transcription
   imagegen.py   Stable Diffusion XL Turbo image generation
   videogen.py   LTX-Video text-to-video (experimental)
 finetune/

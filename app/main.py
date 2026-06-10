@@ -13,6 +13,7 @@ from app.memory import clear_memories, list_memories
 from app.rag import ask_documents, index_documents
 from app.videogen import generate_video
 from app.vision import analyze_media
+from app.voice import transcribe_file, voice_chat
 
 
 def build_app() -> gr.Blocks:
@@ -22,6 +23,38 @@ def build_app() -> gr.Blocks:
         with gr.Tab("Chat"):
             gr.Markdown(f"Model: `{CHAT_MODEL}` (local via Ollama)")
             gr.ChatInterface(fn=stream_chat, type="messages")
+
+        with gr.Tab("Voice"):
+            gr.Markdown(
+                "Talk to your assistant. Record a question, get a spoken "
+                "answer. Replies use memory, just like the Chat tab."
+            )
+            mic = gr.Audio(sources=["microphone"], type="filepath", label="Your question")
+            voice_btn = gr.Button("Ask", variant="primary")
+            heard = gr.Textbox(label="You said", interactive=False)
+            voice_reply = gr.Markdown(label="Reply")
+            voice_audio = gr.Audio(label="Spoken reply", autoplay=True)
+            voice_btn.click(
+                voice_chat, inputs=mic, outputs=[heard, voice_reply, voice_audio]
+            )
+
+        with gr.Tab("Transcribe"):
+            gr.Markdown(
+                "Turn any audio or video file into a timestamped transcript "
+                "(meetings, voice notes, lectures). Runs locally with Whisper."
+            )
+            transcribe_input = gr.File(
+                label="Audio or video file",
+                file_types=["audio", "video"],
+                type="filepath",
+            )
+            transcribe_btn = gr.Button("Transcribe", variant="primary")
+            transcript_out = gr.Textbox(
+                label="Transcript", lines=18, show_copy_button=True
+            )
+            transcribe_btn.click(
+                transcribe_file, inputs=transcribe_input, outputs=transcript_out
+            )
 
         with gr.Tab("Documents"):
             gr.Markdown(
