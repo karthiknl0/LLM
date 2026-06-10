@@ -16,6 +16,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Learn from corrections | Behavioral lessons stored alongside facts | Automatic |
 | Deep research / deep answer | Multi-angle search + self-review passes | Slower, better |
 | Read your PDFs / Excel / code (RAG) | Local vector DB (ChromaDB) + Ollama embeddings | Fast |
+| Chat with any GitHub repo | Shallow clone + the same RAG pipeline | Fast |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
 | Look at your screen | Screenshot + vision model | Fast, stays on your machine |
@@ -115,6 +116,9 @@ command to fix each.
   click *Index documents*, then ask questions about them. Behind the
   scenes, 20 candidate passages are fetched and a local reranker model
   picks the best 5 — noticeably better answers than plain vector search.
+  You can also paste a GitHub URL to clone and index a whole codebase,
+  then ask questions about it ("how does auth work in this repo?") —
+  cloning is the only network step, the analysis stays local.
 - **Vision** — upload an image or video and ask anything about it.
 - **Screen** — one click captures your screen and the vision model
   answers questions about it ("what does this error mean?"). Also
@@ -191,6 +195,7 @@ app/
   chat.py       chat with the local LLM
   personas.py   switchable specialist prompts (data/personas/*.md)
   rag.py        document indexing & retrieval, with reranking
+  repo.py       clone GitHub repos into the document index
   research.py   web research with citations, plus deep-research mode
   sandbox.py    Python execution for the agent (data/workspace/)
   screen.py     screen capture + vision analysis
