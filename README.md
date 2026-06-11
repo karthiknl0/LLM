@@ -98,6 +98,14 @@ ollama pull qwen2.5vl:7b       # vision: images & video frames (~6 GB)
 ollama pull nomic-embed-text   # embeddings for document search (~275 MB)
 ```
 
+Optional extra brains — each shows up in the app's model dropdown:
+
+```bash
+ollama pull qwen3:32b           # smarter, slower (~20 GB, GPU+RAM split)
+ollama pull deepseek-r1:14b     # strong step-by-step reasoning (~9 GB)
+ollama pull qwen2.5-coder:14b   # code specialist (~9 GB)
+```
+
 #### 2. Set up Python environment
 
 Requires Python 3.10+.

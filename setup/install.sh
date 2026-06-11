@@ -37,3 +37,8 @@ python -m playwright install chromium || echo "    (skipped — browser verifica
 echo
 echo "Done. Start the app with:"
 echo "  source .venv/bin/activate && python -m app.main"
+echo
+echo "Optional extra brains (each appears in the app's model dropdown):"
+echo "  ollama pull qwen3:32b           # smarter, slower (~20 GB)"
+echo "  ollama pull deepseek-r1:14b     # strong reasoning (~9 GB)"
+echo "  ollama pull qwen2.5-coder:14b   # code specialist (~9 GB)"
