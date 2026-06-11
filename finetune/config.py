@@ -28,6 +28,9 @@ SYSTEM_PROMPT = (
     "user's own computer."
 )
 
+# Ollama model used to generate training instructions from code chunks
+CHAT_MODEL_FOR_DATAGEN = "qwen2.5-coder:14b"
+
 # --- QLoRA hyperparameters (safe defaults for 16 GB) ---
 LORA_RANK = 16
 LORA_ALPHA = 32

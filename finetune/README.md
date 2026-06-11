@@ -28,7 +28,11 @@ Note: `bitsandbytes` needs Linux or WSL2 on Windows.
 #    Optionally add hand-written examples in data/training/custom.jsonl:
 #    {"user": "question", "assistant": "ideal answer"}
 
-# 2. Build the dataset from your logs
+# (optional) Learn from a codebase: turn a project into training data
+#    that teaches the model THIS code's style and patterns.
+python -m finetune.code_to_dataset /path/to/your/project
+
+# 2. Build the dataset from your logs (+ any code data above)
 python -m finetune.export_data
 
 # 3. Train (roughly 1-3 hours on your GPU)
