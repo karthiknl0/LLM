@@ -12,6 +12,7 @@ data/personas/
 data/skills/
 data/playbooks/
 data/evals/
+data/backups/
 data/mcp.json
 outputs/*
 !data/documents/.gitkeep

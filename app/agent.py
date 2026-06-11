@@ -12,6 +12,7 @@ from app import gittools, imagegen, mcp_client, rag, research, sandbox, screen, 
 from app.browser import verify_in_browser
 from app.chat import _log_turn
 from app.config import CHAT_MODEL, WORKSPACE_DIR
+from app.fileedit import propose_edit, read_file
 from app.history import compact_history
 from app.memory import recall, recall_lessons, remember
 from app.notes import read_notes, recent_notes, take_note
@@ -34,7 +35,11 @@ SYSTEM_PROMPT = (
     "git_clone a repo, edit its files under repos/<name>/ with "
     "run_python, commit to an ai/ branch with git_commit, and call "
     "git_push ONLY when the user explicitly asks to push — the push "
-    "creates a branch they review as a pull request. During long "
+    "creates a branch they review as a pull request. For files outside "
+    "the workspace (the user's own documents/configs): read_file to "
+    "inspect, propose_edit to suggest a change — edits apply ONLY after "
+    "the user approves the diff in the Approvals tab, so always tell "
+    "them an edit is waiting there. During long "
     "multi-step tasks, use take_note to record progress, decisions, and "
     "next steps — notes survive even when older conversation is "
     "summarized away — and read_notes to recall them. Answer directly "
@@ -106,6 +111,50 @@ TOOLS = [
                     "code": {"type": "string", "description": "Python code to run"}
                 },
                 "required": ["code"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_file",
+            "description": (
+                "Read a file anywhere in the user's allowed folders (their "
+                "home directory by default). Use absolute paths."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Absolute file path"}
+                },
+                "required": ["path"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "propose_edit",
+            "description": (
+                "Propose new content for a file in the user's allowed "
+                "folders. NOT applied immediately: the user reviews the "
+                "diff in the Approvals tab and approves or rejects it. "
+                "Provide the COMPLETE new file content."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Absolute file path"},
+                    "new_content": {
+                        "type": "string",
+                        "description": "Full new content of the file",
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "One line: what changed and why",
+                    },
+                },
+                "required": ["path", "new_content"],
             },
         },
     },
@@ -334,6 +383,8 @@ TOOL_FUNCTIONS = {
     "read_notes": read_notes,
     "load_playbook": load_playbook,
     "run_command": sandbox.run_command,
+    "read_file": read_file,
+    "propose_edit": propose_edit,
     "git_clone": gittools.git_clone,
     "git_status": gittools.git_status,
     "git_commit": gittools.git_commit,
@@ -351,6 +402,8 @@ TOOL_STATUS = {
     "read_notes": "Reading notes",
     "load_playbook": "Loading a playbook",
     "run_command": "Building / running tests",
+    "read_file": "Reading a file",
+    "propose_edit": "Proposing a file edit (needs your approval)",
     "git_clone": "Cloning repository",
     "git_status": "Checking git status",
     "git_commit": "Committing changes",

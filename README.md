@@ -19,6 +19,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Read your PDFs / Excel / Word / PowerPoint / code (RAG) | Local vector DB (ChromaDB) + Ollama embeddings | Fast |
 | Chat with any GitHub repo | Shallow clone + the same RAG pipeline | Fast |
 | Edit, build & test code | Clone a repo, edit, run its tests/build, fix failures | Supervised |
+| Edit your own files (approval-gated) | Proposes diffs; you approve in the Approvals tab; originals backed up | Supervised |
 | Edit & push code to GitHub | Guarded git tools — ai/* branches only, you merge via PR | Supervised |
 | Verify web pages in a browser | Headless Chromium + vision model + console errors | Fast |
 | Plug-in tools via MCP | Any Model Context Protocol server (data/mcp.json) | Depends on server |
@@ -252,6 +253,17 @@ This differs from the **Skills** tab (functions the agent writes itself)
 and **personas** (whole-chat system prompts): playbooks are reference
 procedures you author once and the agent follows on demand.
 
+## Editing your files: the approval gate
+
+The agent can read files anywhere in your home folder and *propose*
+edits to them — but **nothing is written until you approve the diff in
+the Approvals tab**, and the original is backed up to `data/backups/`
+first. This is the same architecture Claude Code uses: broad read
+access, human approval on every write. Ask things like *"fix the typo
+in C:/Users/you/notes/draft.md"* — the agent queues a diff and tells
+you it's waiting for approval. Allowed folders are `EDIT_ROOTS` in
+`app/config.py` (default: your home directory) — narrow it if you wish.
+
 ## MCP: plug-in tools for the agent
 
 The agent speaks [Model Context Protocol](https://modelcontextprotocol.io) —
@@ -337,6 +349,7 @@ app/
   notes.py      agent scratchpad for long tasks (survives compaction)
   playbooks.py  authored workflows, loaded on demand (data/playbooks/)
   evals.py      local prompt evaluations (Evals tab, data/evals/)
+  fileedit.py   approval-gated edits to your own files (Approvals tab)
   promptlab.py  prompt improver (Prompt Helper tab)
   research.py   web research with citations, plus deep-research mode
   browser.py    headless-browser verification of web pages

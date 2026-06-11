@@ -18,6 +18,7 @@ from app.research import deep_research, research
 from app.screen import capture_and_analyze
 from app.skills import list_skills
 from app.evals import list_sets, run_eval
+from app.fileedit import approve, list_pending, reject, show_diff
 from app.promptlab import improve_prompt
 from app.status import run_checks
 from app.team import team_run
@@ -286,6 +287,27 @@ def build_app() -> gr.Blocks:
                 headers=["Skill", "Description"], interactive=False
             )
             skills_refresh.click(list_skills, outputs=skills_table)
+
+        with gr.Tab("Approvals"):
+            gr.Markdown(
+                "File edits the agent proposed. **Nothing is written until "
+                "you approve it here.** Approved edits back up the original "
+                "to `data/backups/` first."
+            )
+            approvals_refresh = gr.Button("Refresh", variant="primary")
+            approvals_table = gr.Dataframe(
+                headers=["ID", "File", "Reason"], interactive=False
+            )
+            approvals_refresh.click(list_pending, outputs=approvals_table)
+            approval_id = gr.Textbox(label="Edit ID", placeholder="e.g. 3f9a1c2b")
+            with gr.Row():
+                diff_btn = gr.Button("Show diff")
+                approve_btn = gr.Button("Approve & apply", variant="primary")
+                reject_btn = gr.Button("Reject")
+            approval_out = gr.Markdown()
+            diff_btn.click(show_diff, inputs=approval_id, outputs=approval_out)
+            approve_btn.click(approve, inputs=approval_id, outputs=approval_out)
+            reject_btn.click(reject, inputs=approval_id, outputs=approval_out)
 
         with gr.Tab("Prompt Helper"):
             gr.Markdown(
