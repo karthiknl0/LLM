@@ -125,6 +125,14 @@ def export_chat(history: list[dict]) -> str:
     return f"Conversation exported to `{path}` ({len(turns)} messages)."
 
 
+def _cmd_vote(arg: str) -> str:
+    if not arg:
+        return "Usage: /vote <a reasoning or math question>"
+    from app.consistency import self_consistency
+
+    return self_consistency(arg)
+
+
 def _cmd_model(arg: str) -> str:
     from app.modelstate import current_model, installed_models, set_model
 
@@ -178,6 +186,7 @@ COMMANDS = {
     "deepresearch": ("<question> — multi-angle research + verification", _cmd_deepresearch),
     "diff": ("<repo> — show uncommitted changes in a cloned repo", _cmd_diff),
     "model": ("[name] — show or switch the active model", _cmd_model),
+    "vote": ("<question> — 5 independent tries, majority answer wins", _cmd_vote),
     "loop": ("<minutes> <prompt> — run a prompt on a schedule", _cmd_loop),
     "loops": ("— list running loops", _cmd_loops),
     "stoploop": ("<id> — stop a loop", _cmd_stoploop),
