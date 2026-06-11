@@ -22,6 +22,24 @@ from app.vision import VIDEO_EXTENSIONS, analyze_media
 MAX_TOOL_ROUNDS = 6
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
 
+# Plan mode: only these tools are available — inspection, no changes.
+# (git_clone is allowed: exploring a repo requires having it locally.)
+READ_ONLY_TOOLS = {
+    "search_documents", "web_research", "read_file", "git_clone",
+    "git_status", "look_at_screen", "verify_in_browser", "read_notes",
+    "load_playbook",
+}
+
+PLAN_MODE_PROMPT = (
+    "\n\nPLAN MODE IS ON. You may only inspect: read files, search, "
+    "research — your editing and execution tools are disabled. Do NOT "
+    "attempt changes. Deliverable: a numbered implementation plan — for "
+    "each step, what you'll change and how you'll verify it (test "
+    "command, browser check). State assumptions and open questions. End "
+    "by telling the user to untick Plan mode and say 'execute the plan' "
+    "when they approve."
+)
+
 SYSTEM_PROMPT = (
     "You are a helpful local AI assistant running entirely on the user's "
     "own computer, with tools. Use search_documents for questions about "
@@ -488,10 +506,13 @@ def _describe_attachments(files: list[str], question: str) -> list[str]:
     return notes
 
 
-def agent_chat(message, history: list[dict], deep_answer: bool = False):
+def agent_chat(
+    message, history: list[dict], deep_answer: bool = False, plan_mode: bool = False
+):
     """Generator for the Agent tab: yields tool-use progress, then the
     final answer. With deep_answer, the model reviews and corrects its
-    own draft before replying (slower, more reliable)."""
+    own draft before replying (slower, more reliable). With plan_mode,
+    editing/execution tools are removed and the agent proposes a plan."""
     files = []
     if isinstance(message, dict):  # multimodal input: {"text", "files"}
         files = list(message.get("files") or [])
@@ -532,6 +553,8 @@ def agent_chat(message, history: list[dict], deep_answer: bool = False):
         system += "\n\nYour recent scratchpad notes:\n" + notes_tail
     system += catalog_hint()
 
+    if plan_mode:
+        system += PLAN_MODE_PROMPT
     summary, past_messages = compact_history(history)
     if summary:
         system += "\n\nSummary of earlier parts of this conversation:\n" + summary
@@ -546,6 +569,9 @@ def agent_chat(message, history: list[dict], deep_answer: bool = False):
     messages.append({"role": "user", "content": user_content})
 
     tools, functions = _all_tools(), _all_functions()
+    if plan_mode:  # hard guarantee, not just a prompt: write tools removed
+        tools = [t for t in tools if t["function"]["name"] in READ_ONLY_TOOLS]
+        functions = {k: v for k, v in functions.items() if k in READ_ONLY_TOOLS}
     reply = "(no answer)"
     executed_code = []
     for _round in range(MAX_TOOL_ROUNDS + 1):

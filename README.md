@@ -27,6 +27,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Playbook library | Authored workflows loaded on demand (data/playbooks/) | Automatic |
 | Prompt evals | Graded test sets + LLM-as-judge (Evals tab) | On demand |
 | Prompt helper | Rewrites a rough prompt using prompt-eng techniques | On demand |
+| Plan mode | Read-only exploration → approved plan → execute | Checkbox in Agent |
 | Slash commands | /help /status /memory /index … in Chat and Agent | Instant |
 | Scheduled loops | /loop <min> <prompt> — recurring agent runs with logs | Background |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
@@ -154,7 +155,10 @@ same also happens automatically past ~12k characters).
   instead of guessing at numbers (note: that code runs on your machine,
   with a 60-second timeout, confined to the workspace folder by
   convention). Tick **Deep answer** to make it review its own draft
-  before replying. When it builds or changes a web page, it verifies
+  before replying. Tick **Plan mode** for read-only exploration: the
+  agent proposes a numbered plan with verification steps and its
+  editing/execution tools are physically removed until you untick it
+  and say "execute the plan". When it builds or changes a web page, it verifies
   the result in a headless browser — screenshot checked by the vision
   model, console errors included — before telling you it's done.
 - **Team** — multi-agent mode for big jobs: a planner agent splits your

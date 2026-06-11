@@ -48,7 +48,13 @@ def build_app() -> gr.Blocks:
                         label="Deep answer — the model reviews its own draft "
                         "first (slower, more reliable)",
                         value=False,
-                    )
+                    ),
+                    gr.Checkbox(
+                        label="Plan mode — read-only: the agent explores and "
+                        "proposes a plan; editing/execution tools are disabled "
+                        "until you untick this",
+                        value=False,
+                    ),
                 ],
             )
 
