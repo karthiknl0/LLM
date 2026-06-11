@@ -81,6 +81,50 @@ def _cmd_approvals(_arg: str) -> str:
     )
 
 
+def _cmd_research(arg: str) -> str:
+    if not arg:
+        return "Usage: /research <question>  (or /deepresearch <question>)"
+    from app.research import research
+
+    return research(arg)
+
+
+def _cmd_deepresearch(arg: str) -> str:
+    if not arg:
+        return "Usage: /deepresearch <question>"
+    from app.research import deep_research
+
+    return deep_research(arg)
+
+
+def _cmd_diff(arg: str) -> str:
+    from app.gittools import git_diff
+
+    if not arg:
+        return "Usage: /diff <repo-folder-name>"
+    diff = git_diff(arg)
+    return f"```diff\n{diff}\n```" if diff.startswith(("diff", "---")) else diff
+
+
+def export_chat(history: list[dict]) -> str:
+    """The /export command (handled in the chat paths — needs history)."""
+    import datetime
+
+    from app.config import OUTPUTS_DIR
+
+    turns = [
+        m for m in history
+        if m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str)
+    ]
+    if not turns:
+        return "Nothing to export yet."
+    stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = OUTPUTS_DIR / f"chat_{stamp}.md"
+    body = "\n\n".join(f"### {m['role'].title()}\n\n{m['content']}" for m in turns)
+    path.write_text(f"# Conversation export — {stamp}\n\n{body}\n", encoding="utf-8")
+    return f"Conversation exported to `{path}` ({len(turns)} messages)."
+
+
 def _cmd_loop(arg: str) -> str:
     from app.scheduler import start_loop
 
@@ -117,6 +161,10 @@ COMMANDS = {
     "index": ("— (re)index data/documents/", _cmd_index),
     "approvals": ("— list file edits awaiting approval", _cmd_approvals),
     "compact": ("— summarize this chat; older turns leave the context", lambda a: "Type /compact directly in the chat box."),
+    "export": ("— save this conversation to outputs/ as markdown", lambda a: "Type /export directly in the chat box."),
+    "research": ("<question> — web research with citations", _cmd_research),
+    "deepresearch": ("<question> — multi-angle research + verification", _cmd_deepresearch),
+    "diff": ("<repo> — show uncommitted changes in a cloned repo", _cmd_diff),
     "loop": ("<minutes> <prompt> — run a prompt on a schedule", _cmd_loop),
     "loops": ("— list running loops", _cmd_loops),
     "stoploop": ("<id> — stop a loop", _cmd_stoploop),

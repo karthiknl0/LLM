@@ -50,6 +50,68 @@ SEED = {
             "passing test now fails."
         ),
     },
+    "review-code-changes": {
+        "description": "Review a repo's pending changes for bugs, ordered by severity.",
+        "tags": "review, code-quality",
+        "body": (
+            "## When to use\nThe user asks to review changes in a cloned "
+            "repo before committing or merging.\n\n"
+            "## Workflow\n"
+            "1. Get the diff: git_status, then run_command 'git diff' (and "
+            "'git diff main...HEAD' for branch changes) in repos/<name>.\n"
+            "2. For each changed file, read enough surrounding code to "
+            "judge the change in context — never review a diff blind.\n"
+            "3. Look for: logic errors, unhandled edge cases, broken "
+            "callers of changed signatures, resource leaks, race "
+            "conditions.\n"
+            "4. Report findings ordered by severity with file:line, why it "
+            "matters, and a concrete fix. If the change is good, say so — "
+            "do not invent problems.\n\n"
+            "## Verification\nEvery finding cites a real line from the "
+            "diff; run the tests (run_command) if a finding claims "
+            "breakage."
+        ),
+    },
+    "simplify-code": {
+        "description": "Find simplification and reuse opportunities in changed code.",
+        "tags": "review, simplicity",
+        "body": (
+            "## When to use\nThe user wants changed code made simpler, "
+            "not bug-hunted.\n\n"
+            "## Workflow\n"
+            "1. Get the diff (run_command 'git diff' in repos/<name>).\n"
+            "2. For each hunk ask: could fewer lines do this? Is there an "
+            "existing helper in the repo that already does it (search the "
+            "indexed code)? Is any abstraction used only once?\n"
+            "3. Propose the minimal rewrites — show before/after for each, "
+            "keeping behavior identical.\n"
+            "4. Apply only the ones the user approves; re-run tests after.\n\n"
+            "## Verification\nTests pass before and after; line count went "
+            "down or clarity demonstrably up."
+        ),
+    },
+    "security-review": {
+        "description": "Defensive security pass over a repo's pending changes.",
+        "tags": "review, security",
+        "body": (
+            "## When to use\nThe user asks for a security review of "
+            "changes in their own repo.\n\n"
+            "## Workflow\n"
+            "1. Get the diff and the touched files' full contents.\n"
+            "2. Check for: unsanitized input reaching shell/SQL/eval/"
+            "deserialization; path traversal on user-supplied paths; "
+            "secrets or tokens committed in code or config; overly broad "
+            "file/network permissions; missing auth checks on new "
+            "endpoints; unsafe defaults.\n"
+            "3. Check new dependencies: are they needed, maintained, and "
+            "pinned?\n"
+            "4. Report findings ordered by severity with file:line, the "
+            "attack scenario in one sentence, and the fix. No findings is "
+            "a valid result — say so plainly.\n\n"
+            "## Verification\nEach finding points at real code in the "
+            "diff, not a hypothetical."
+        ),
+    },
     "analyze-a-dataset": {
         "description": "Explore a CSV/Excel file and summarize findings with a chart.",
         "tags": "data, analysis",

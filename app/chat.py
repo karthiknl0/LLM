@@ -39,6 +39,11 @@ def stream_chat(message: str, history: list[dict], persona: str = DEFAULT_NAME):
 
         yield manual_compact(history)
         return
+    if message.strip().lower() == "/export":
+        from app.commands import export_chat
+
+        yield export_chat(history)
+        return
     command_reply = handle_command(message)
     if command_reply is not None:
         yield command_reply

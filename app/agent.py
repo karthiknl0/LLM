@@ -505,6 +505,11 @@ def agent_chat(message, history: list[dict], deep_answer: bool = False):
 
             yield manual_compact(history)
             return
+        if message.strip().lower() == "/export":
+            from app.commands import export_chat
+
+            yield export_chat(history)
+            return
         from app.commands import handle_command
 
         command_reply = handle_command(message)

@@ -135,7 +135,8 @@ command to fix each.
 ## Using it
 
 Type `/help` in the Chat or Agent box for slash commands — instant
-actions like `/status`, `/memory`, `/index`, `/note <text>`, and
+actions like `/status`, `/memory`, `/index`, `/note <text>`,
+`/research <question>`, `/diff <repo>`, `/export`, and
 `/approvals` without leaving the conversation. Recurring work: `/loop 30
 research X and note anything new` re-runs a prompt (with full agent
 tools) every 30 minutes and logs results to `data/loops/` — `/loops`

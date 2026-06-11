@@ -87,6 +87,21 @@ def git_status(repo: str) -> str:
     )
 
 
+def git_diff(repo: str) -> str:
+    """Full diff of uncommitted (and staged) changes in a cloned repo."""
+    path = _resolve_repo(repo)
+    if not path:
+        return f"No cloned repository named '{repo}' — use git_clone first."
+    _ok, unstaged = _git(path, "diff")
+    _ok, staged = _git(path, "diff", "--cached")
+    combined = "\n".join(part for part in (staged, unstaged) if part).strip()
+    if not combined:
+        return "(no uncommitted changes)"
+    if len(combined) > 6000:
+        combined = combined[:6000] + "\n... (diff truncated)"
+    return combined
+
+
 def git_commit(repo: str, branch: str, message: str) -> str:
     path = _resolve_repo(repo)
     if not path:
