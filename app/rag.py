@@ -9,7 +9,6 @@ import pandas as pd
 from pypdf import PdfReader
 
 from app.config import (
-    CHAT_MODEL,
     CHUNK_OVERLAP,
     CHUNK_SIZE,
     CODE_EXTENSIONS,
@@ -20,6 +19,7 @@ from app.config import (
     TOP_K,
     VECTOR_DB_DIR,
 )
+from app.modelstate import current_model
 
 _client = chromadb.PersistentClient(path=str(VECTOR_DB_DIR))
 COLLECTION_NAME = "documents"
@@ -198,7 +198,7 @@ def ask_documents(question: str) -> str:
         )
     context, sources = retrieved
     response = ollama.chat(
-        model=CHAT_MODEL,
+        model=current_model(),
         messages=[
             {
                 "role": "system",

@@ -9,7 +9,8 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 
 | Capability | How | Status on 16 GB GPU |
 |---|---|---|
-| Chat & coding help | Qwen 3 14B via Ollama | Fast, fully on GPU |
+| Chat & coding help | Qwen 3 14B via Ollama (switchable in the UI) | Fast, fully on GPU |
+| Model dropdown | Switch the brain everywhere — also /model <name> | Instant |
 | Agent mode (auto tool use) | Native tool calling: docs, web, Python, images | Fast |
 | Team mode (multi-agent) | Planner → tool-using workers → reviewer | Slower, for big tasks |
 | Run Python for you | Agent writes & executes code in `data/workspace/` | Fast |

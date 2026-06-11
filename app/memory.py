@@ -10,7 +10,8 @@ import uuid
 import chromadb
 import ollama
 
-from app.config import CHAT_MODEL, EMBED_MODEL, VECTOR_DB_DIR
+from app.config import EMBED_MODEL, VECTOR_DB_DIR
+from app.modelstate import current_model
 
 _client = chromadb.PersistentClient(path=str(VECTOR_DB_DIR))
 FACTS_COLLECTION = "memories"
@@ -83,7 +84,7 @@ def remember(user_message: str, assistant_reply: str) -> None:
     Never raises — memory failures must not break the chat."""
     try:
         response = ollama.chat(
-            model=CHAT_MODEL,
+            model=current_model(),
             messages=[
                 {
                     "role": "user",

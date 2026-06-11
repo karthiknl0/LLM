@@ -12,7 +12,8 @@ from app import gittools, hooks, imagegen, mcp_client, rag, research, sandbox, s
 from app.browser import verify_in_browser
 from app.instructions import standing_instructions
 from app.chat import _log_turn
-from app.config import CHAT_MODEL, WORKSPACE_DIR
+from app.config import WORKSPACE_DIR
+from app.modelstate import current_model
 from app.fileedit import propose_edit, read_file
 from app.history import compact_history
 from app.memory import recall, recall_lessons, remember
@@ -464,7 +465,7 @@ def run_with_tools(system: str, user: str, max_rounds: int = MAX_TOOL_ROUNDS) ->
     executed_code = []
     reply = "(no answer)"
     for round_number in range(max_rounds + 1):
-        response = ollama.chat(model=CHAT_MODEL, messages=messages, tools=tools)
+        response = ollama.chat(model=current_model(), messages=messages, tools=tools)
         msg = response["message"]
         tool_calls = getattr(msg, "tool_calls", None) or []
         if not tool_calls or round_number == max_rounds:
@@ -583,7 +584,7 @@ def agent_chat(
     reply = "(no answer)"
     executed_code = []
     for _round in range(MAX_TOOL_ROUNDS + 1):
-        response = ollama.chat(model=CHAT_MODEL, messages=messages, tools=tools)
+        response = ollama.chat(model=current_model(), messages=messages, tools=tools)
         msg = response["message"]
         tool_calls = getattr(msg, "tool_calls", None) or []
 
@@ -626,7 +627,7 @@ def agent_chat(
                 ),
             }
         )
-        review = ollama.chat(model=CHAT_MODEL, messages=messages)
+        review = ollama.chat(model=current_model(), messages=messages)
         revised = review["message"]["content"].strip()
         if revised:
             reply = revised

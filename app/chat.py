@@ -10,7 +10,8 @@ import json
 import ollama
 
 from app.commands import handle_command
-from app.config import CHAT_MODEL, CHATLOG_DIR
+from app.config import CHATLOG_DIR
+from app.modelstate import current_model
 from app.history import compact_history
 from app.instructions import standing_instructions
 from app.memory import recall, recall_lessons, remember
@@ -70,7 +71,7 @@ def stream_chat(message: str, history: list[dict], persona: str = DEFAULT_NAME):
     messages.append({"role": "user", "content": message})
 
     reply = ""
-    for part in ollama.chat(model=CHAT_MODEL, messages=messages, stream=True):
+    for part in ollama.chat(model=current_model(), messages=messages, stream=True):
         reply += part["message"]["content"]
         yield reply
 

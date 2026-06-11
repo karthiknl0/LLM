@@ -11,7 +11,7 @@ import re
 
 import ollama
 
-from app.config import CHAT_MODEL
+from app.modelstate import current_model
 
 IMPROVE_SYSTEM = (
     "You are a prompt engineer. Rewrite the user's prompt so a language "
@@ -31,7 +31,7 @@ def improve_prompt(draft: str) -> str:
     if not (draft or "").strip():
         return "Paste a prompt to improve."
     response = ollama.chat(
-        model=CHAT_MODEL,
+        model=current_model(),
         messages=[
             {"role": "system", "content": IMPROVE_SYSTEM},
             {"role": "user", "content": draft.strip()},

@@ -11,6 +11,7 @@ from app.chat import stream_chat
 from app.config import CHAT_MODEL, DOCUMENTS_DIR, VISION_MODEL
 from app.imagegen import generate_image
 from app.memory import clear_memories, list_memories
+from app.modelstate import current_model, installed_models, set_model
 from app.personas import DEFAULT_NAME, list_personas
 from app.rag import ask_documents, index_documents
 from app.repo import add_repo
@@ -31,9 +32,20 @@ def build_app() -> gr.Blocks:
     with gr.Blocks(title="Local AI Hub") as demo:
         gr.Markdown("# Local AI Hub\nEverything runs on your own machine.")
 
+        with gr.Row():
+            model_dropdown = gr.Dropdown(
+                choices=installed_models(),
+                value=current_model(),
+                label="Brain — the Ollama model answering everywhere "
+                "(chat, agent, team, research)",
+                scale=3,
+            )
+            model_status = gr.Markdown()
+        model_dropdown.change(set_model, inputs=model_dropdown, outputs=model_status)
+
         with gr.Tab("Agent"):
             gr.Markdown(
-                f"Model: `{CHAT_MODEL}` with tools — it decides by itself "
+                "The selected brain, with tools — it decides by itself "
                 "when to search your documents, research the web, run "
                 "Python (workspace: `data/workspace/`), or generate an "
                 "image. Attach images, videos, or data files with the 📎 "
@@ -80,7 +92,7 @@ def build_app() -> gr.Blocks:
 
         with gr.Tab("Chat"):
             gr.Markdown(
-                f"Model: `{CHAT_MODEL}` (local via Ollama, no tools). Pick "
+                "The selected brain, no tools. Pick "
                 "a specialist persona below — or add your own as .md files "
                 "in `data/personas/`."
             )

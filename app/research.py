@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import ollama
 
-from app.config import CHAT_MODEL
+from app.modelstate import current_model
 
 MAX_SOURCES = 6
 MAX_CHARS_PER_PAGE = 4000
@@ -68,7 +68,7 @@ def research(question: str) -> str:
         for i, (r, page) in enumerate(zip(results, pages))
     )
     response = ollama.chat(
-        model=CHAT_MODEL,
+        model=current_model(),
         messages=[
             {
                 "role": "system",
@@ -97,7 +97,7 @@ def _subqueries(question: str) -> list[str]:
     """Ask the LLM to attack the question from several search angles."""
     try:
         response = ollama.chat(
-            model=CHAT_MODEL,
+            model=current_model(),
             messages=[
                 {
                     "role": "user",
@@ -160,7 +160,7 @@ def deep_research(question: str) -> str:
             "content": f"Sources:\n{context}\n\nQuestion: {question}",
         },
     ]
-    draft = ollama.chat(model=CHAT_MODEL, messages=messages)["message"]["content"]
+    draft = ollama.chat(model=current_model(), messages=messages)["message"]["content"]
 
     # verification pass: check the draft against the sources
     messages += [
@@ -175,7 +175,7 @@ def deep_research(question: str) -> str:
             ),
         },
     ]
-    answer = ollama.chat(model=CHAT_MODEL, messages=messages)["message"]["content"]
+    answer = ollama.chat(model=current_model(), messages=messages)["message"]["content"]
 
     source_list = "\n".join(
         f"{i + 1}. [{r['title']}]({r['href']})" for i, r in enumerate(results)

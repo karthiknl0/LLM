@@ -9,7 +9,8 @@ import re
 import chromadb
 import ollama
 
-from app.config import CHAT_MODEL, EMBED_MODEL, SKILLS_DIR, VECTOR_DB_DIR
+from app.config import EMBED_MODEL, SKILLS_DIR, VECTOR_DB_DIR
+from app.modelstate import current_model
 
 _client = chromadb.PersistentClient(path=str(VECTOR_DB_DIR))
 COLLECTION_NAME = "skills"
@@ -69,7 +70,7 @@ def maybe_learn(task: str, code_snippets: list[str]) -> None:
         return
     try:
         response = ollama.chat(
-            model=CHAT_MODEL,
+            model=current_model(),
             messages=[
                 {
                     "role": "user",

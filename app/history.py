@@ -8,7 +8,7 @@ import re
 
 import ollama
 
-from app.config import CHAT_MODEL
+from app.modelstate import current_model
 
 MAX_HISTORY_CHARS = 12_000   # roughly a third of the context window
 KEEP_RECENT_MESSAGES = 8     # always kept word-for-word
@@ -29,7 +29,7 @@ def _summarize(messages: list[dict]) -> str | None:
     )[:10_000]
     try:
         response = ollama.chat(
-            model=CHAT_MODEL,
+            model=current_model(),
             messages=[
                 {"role": "user", "content": SUMMARY_PROMPT.format(transcript=transcript)}
             ],

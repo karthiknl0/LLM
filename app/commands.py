@@ -125,6 +125,18 @@ def export_chat(history: list[dict]) -> str:
     return f"Conversation exported to `{path}` ({len(turns)} messages)."
 
 
+def _cmd_model(arg: str) -> str:
+    from app.modelstate import current_model, installed_models, set_model
+
+    if not arg:
+        return (
+            f"Active: `{current_model()}`\nInstalled: "
+            + ", ".join(f"`{m}`" for m in installed_models())
+            + "\nSwitch with /model <name>"
+        )
+    return set_model(arg)
+
+
 def _cmd_loop(arg: str) -> str:
     from app.scheduler import start_loop
 
@@ -165,6 +177,7 @@ COMMANDS = {
     "research": ("<question> — web research with citations", _cmd_research),
     "deepresearch": ("<question> — multi-angle research + verification", _cmd_deepresearch),
     "diff": ("<repo> — show uncommitted changes in a cloned repo", _cmd_diff),
+    "model": ("[name] — show or switch the active model", _cmd_model),
     "loop": ("<minutes> <prompt> — run a prompt on a schedule", _cmd_loop),
     "loops": ("— list running loops", _cmd_loops),
     "stoploop": ("<id> — stop a loop", _cmd_stoploop),

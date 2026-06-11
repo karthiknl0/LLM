@@ -12,7 +12,7 @@ import re
 import ollama
 
 from app.agent import run_with_tools
-from app.config import CHAT_MODEL
+from app.modelstate import current_model
 
 MAX_SUBTASKS = 4
 
@@ -47,7 +47,7 @@ def _strip_thinking(text: str) -> str:
 
 def _plan(task: str) -> list[str]:
     response = ollama.chat(
-        model=CHAT_MODEL,
+        model=current_model(),
         messages=[
             {"role": "system", "content": PLANNER_SYSTEM},
             {"role": "user", "content": task},
@@ -84,7 +84,7 @@ def team_run(task: str):
 
     yield "\n".join(plan_log + ["", "*Reviewer is combining the results…*"])
     response = ollama.chat(
-        model=CHAT_MODEL,
+        model=current_model(),
         messages=[
             {"role": "system", "content": REVIEWER_SYSTEM},
             {

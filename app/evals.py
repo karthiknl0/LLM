@@ -16,7 +16,8 @@ import re
 
 import ollama
 
-from app.config import CHAT_MODEL, ROOT
+from app.config import ROOT
+from app.modelstate import current_model
 from app.personas import DEFAULT_NAME, get_prompt
 
 EVALS_DIR = ROOT / "data" / "evals"
@@ -77,7 +78,7 @@ def _load(set_name: str) -> list[dict]:
 
 def _judge(case_input: str, answer: str, criteria: str) -> tuple[bool, str]:
     response = ollama.chat(
-        model=CHAT_MODEL,
+        model=current_model(),
         messages=[
             {
                 "role": "user",
@@ -107,7 +108,7 @@ def run_eval(set_name: str, persona: str = DEFAULT_NAME):
         question = case.get("input", "")
         criteria = case.get("criteria", "")
         answer = ollama.chat(
-            model=CHAT_MODEL,
+            model=current_model(),
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": question},
