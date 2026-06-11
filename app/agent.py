@@ -500,6 +500,11 @@ def agent_chat(message, history: list[dict], deep_answer: bool = False):
         yield "Say something or attach a file."
         return
     if not files:
+        if message.strip().lower() == "/compact":
+            from app.history import manual_compact
+
+            yield manual_compact(history)
+            return
         from app.commands import handle_command
 
         command_reply = handle_command(message)

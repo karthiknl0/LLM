@@ -140,6 +140,9 @@ actions like `/status`, `/memory`, `/index`, `/note <text>`, and
 research X and note anything new` re-runs a prompt (with full agent
 tools) every 30 minutes and logs results to `data/loops/` — `/loops`
 lists them, `/stoploop <id>` stops one. Loops live while the app runs.
+When a chat gets long or changes topic, `/compact` summarizes it — the
+summary stays visible and older turns leave the model’s context (the
+same also happens automatically past ~12k characters).
 
 - **Agent** — the smartest way to use the hub: one chat where the model
   itself decides when to search your documents, research the web, run

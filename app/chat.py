@@ -34,6 +34,11 @@ SYSTEM_PROMPT = (
 def stream_chat(message: str, history: list[dict], persona: str = DEFAULT_NAME):
     """Yield the assistant reply incrementally. `history` is a list of
     {"role", "content"} dicts as provided by gradio's chat component."""
+    if message.strip().lower() == "/compact":
+        from app.history import manual_compact
+
+        yield manual_compact(history)
+        return
     command_reply = handle_command(message)
     if command_reply is not None:
         yield command_reply

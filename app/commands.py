@@ -116,6 +116,7 @@ COMMANDS = {
     "notes": ("— show the scratchpad", _cmd_notes),
     "index": ("— (re)index data/documents/", _cmd_index),
     "approvals": ("— list file edits awaiting approval", _cmd_approvals),
+    "compact": ("— summarize this chat; older turns leave the context", lambda a: "Type /compact directly in the chat box."),
     "loop": ("<minutes> <prompt> — run a prompt on a schedule", _cmd_loop),
     "loops": ("— list running loops", _cmd_loops),
     "stoploop": ("<id> — stop a loop", _cmd_stoploop),
