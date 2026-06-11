@@ -28,6 +28,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Prompt evals | Graded test sets + LLM-as-judge (Evals tab) | On demand |
 | Prompt helper | Rewrites a rough prompt using prompt-eng techniques | On demand |
 | Slash commands | /help /status /memory /index … in Chat and Agent | Instant |
+| Scheduled loops | /loop <min> <prompt> — recurring agent runs with logs | Background |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
 | Look at your screen | Screenshot + vision model | Fast, stays on your machine |
@@ -135,7 +136,10 @@ command to fix each.
 
 Type `/help` in the Chat or Agent box for slash commands — instant
 actions like `/status`, `/memory`, `/index`, `/note <text>`, and
-`/approvals` without leaving the conversation.
+`/approvals` without leaving the conversation. Recurring work: `/loop 30
+research X and note anything new` re-runs a prompt (with full agent
+tools) every 30 minutes and logs results to `data/loops/` — `/loops`
+lists them, `/stoploop <id>` stops one. Loops live while the app runs.
 
 - **Agent** — the smartest way to use the hub: one chat where the model
   itself decides when to search your documents, research the web, run

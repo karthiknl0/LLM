@@ -81,6 +81,29 @@ def _cmd_approvals(_arg: str) -> str:
     )
 
 
+def _cmd_loop(arg: str) -> str:
+    from app.scheduler import start_loop
+
+    minutes_str, _, prompt = arg.partition(" ")
+    try:
+        minutes = float(minutes_str)
+    except ValueError:
+        return "Usage: /loop <minutes> <prompt or /command>"
+    return start_loop(minutes, prompt)
+
+
+def _cmd_loops(_arg: str) -> str:
+    from app.scheduler import list_loops
+
+    return list_loops()
+
+
+def _cmd_stoploop(arg: str) -> str:
+    from app.scheduler import stop_loop
+
+    return stop_loop(arg)
+
+
 COMMANDS = {
     "help": ("— list available commands", _cmd_help),
     "status": ("— check Ollama, models, GPU, data", _cmd_status),
@@ -93,6 +116,9 @@ COMMANDS = {
     "notes": ("— show the scratchpad", _cmd_notes),
     "index": ("— (re)index data/documents/", _cmd_index),
     "approvals": ("— list file edits awaiting approval", _cmd_approvals),
+    "loop": ("<minutes> <prompt> — run a prompt on a schedule", _cmd_loop),
+    "loops": ("— list running loops", _cmd_loops),
+    "stoploop": ("<id> — stop a loop", _cmd_stoploop),
 }
 
 
