@@ -370,6 +370,10 @@ def build_app() -> gr.Blocks:
 if __name__ == "__main__":
     import os
 
+    from app.hooks import session_start
+
+    session_start()
+
     # AIHUB_HOST=0.0.0.0 exposes the app on your LAN (e.g. for your
     # phone); set AIHUB_PASSWORD to require a login when you do.
     host = os.environ.get("AIHUB_HOST", "127.0.0.1")

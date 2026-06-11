@@ -8,8 +8,9 @@ from pathlib import Path
 
 import ollama
 
-from app import gittools, imagegen, mcp_client, rag, research, sandbox, screen, skills
+from app import gittools, hooks, imagegen, mcp_client, rag, research, sandbox, screen, skills
 from app.browser import verify_in_browser
+from app.instructions import standing_instructions
 from app.chat import _log_turn
 from app.config import CHAT_MODEL, WORKSPACE_DIR
 from app.fileedit import propose_edit, read_file
@@ -452,6 +453,9 @@ def _skill_hints(task: str) -> str:
 def run_with_tools(system: str, user: str, max_rounds: int = MAX_TOOL_ROUNDS) -> str:
     """One-shot tool-using conversation, for other modules (team mode):
     same tools as the Agent tab, no streaming."""
+    rules = standing_instructions()
+    if rules:
+        system += "\n\nThe user's standing instructions (always follow):\n" + rules
     messages = [
         {"role": "system", "content": system + _skill_hints(user) + catalog_hint()},
         {"role": "user", "content": user},
@@ -470,10 +474,14 @@ def run_with_tools(system: str, user: str, max_rounds: int = MAX_TOOL_ROUNDS) ->
         for call in tool_calls:
             name = call["function"]["name"]
             arguments = dict(call["function"]["arguments"] or {})
-            try:
-                result = functions[name](**arguments)
-            except Exception as exc:
-                result = f"Tool failed: {exc}"
+            block = hooks.pre_tool(name, arguments)
+            if block:
+                result = block
+            else:
+                try:
+                    result = functions[name](**arguments)
+                except Exception as exc:
+                    result = f"Tool failed: {exc}"
             if name == "run_python" and arguments.get("code"):
                 executed_code.append(arguments["code"])
             messages.append(
@@ -589,10 +597,14 @@ def agent_chat(
             arguments = dict(call["function"]["arguments"] or {})
             steps.append(f"*{TOOL_STATUS.get(name, 'Using ' + name.replace('_', ' '))}…*")
             yield "\n\n".join(steps)
-            try:
-                result = functions[name](**arguments)
-            except Exception as exc:
-                result = f"Tool failed: {exc}"
+            block = hooks.pre_tool(name, arguments)
+            if block:
+                result = block
+            else:
+                try:
+                    result = functions[name](**arguments)
+                except Exception as exc:
+                    result = f"Tool failed: {exc}"
             if name == "run_python" and arguments.get("code"):
                 executed_code.append(arguments["code"])
             messages.append(
@@ -626,3 +638,4 @@ def agent_chat(
     _log_turn(message, reply)
     remember(message, reply)
     skills.maybe_learn(message, executed_code)
+    hooks.post_reply(reply)

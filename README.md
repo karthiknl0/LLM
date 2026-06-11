@@ -27,7 +27,9 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Playbook library | Authored workflows loaded on demand (data/playbooks/) | Automatic |
 | Prompt evals | Graded test sets + LLM-as-judge (Evals tab) | On demand |
 | Prompt helper | Rewrites a rough prompt using prompt-eng techniques | On demand |
-| Test suite + CI | 37 pytest checks on guardrails; GitHub Actions on every push | Automatic |
+| Standing instructions | data/instructions.md injected into every conversation | Automatic |
+| Lifecycle hooks | Your deny-rules and commands on tool use (data/hooks.json) | Automatic |
+| Test suite + CI | 45 pytest checks on guardrails; GitHub Actions on every push | Automatic |
 | Plan mode | Read-only exploration → approved plan → execute | Checkbox in Agent |
 | Slash commands | /help /status /memory /index … in Chat and Agent | Instant |
 | Scheduled loops | /loop <min> <prompt> — recurring agent runs with logs | Background |
@@ -390,3 +392,19 @@ outputs/        generated images & videos
 setup/          install & update scripts
 tests/          pytest suite for the guardrail logic (run: pytest tests/)
 ```
+
+## Standing instructions & hooks
+
+Two files shape the assistant permanently, no code edits needed:
+
+- **`data/instructions.md`** — rules injected into every Chat and Agent
+  conversation ("always answer in short bullet points", "never use
+  emojis", "my projects live in D:/code"). Edit and the next message
+  obeys; this is the hub's CLAUDE.md.
+- **`data/hooks.json`** — your own rules that run around tool use,
+  enforced in code so the model can't talk past them. A `pre_tool`
+  hook with `deny_if_contains` blocks matching tool calls (e.g. refuse
+  any `run_command` containing `rm -rf`); hooks with `command` run a
+  shell command for observability or notifications (`session_start`,
+  `post_reply`). The file is created with an empty template on first
+  run; the format is documented in `app/hooks.py`.

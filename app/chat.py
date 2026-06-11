@@ -12,6 +12,7 @@ import ollama
 from app.commands import handle_command
 from app.config import CHAT_MODEL, CHATLOG_DIR
 from app.history import compact_history
+from app.instructions import standing_instructions
 from app.memory import recall, recall_lessons, remember
 from app.personas import DEFAULT_NAME, get_prompt
 
@@ -50,6 +51,9 @@ def stream_chat(message: str, history: list[dict], persona: str = DEFAULT_NAME):
         return
 
     system = get_prompt(persona) or SYSTEM_PROMPT
+    rules = standing_instructions()
+    if rules:
+        system += "\n\nThe user's standing instructions (always follow):\n" + rules
     memories = recall(message)
     if memories:
         system += "\n\nThings you remember about the user from past chats:\n"
@@ -73,3 +77,6 @@ def stream_chat(message: str, history: list[dict], persona: str = DEFAULT_NAME):
     # after the reply finishes, log it and store anything worth remembering
     _log_turn(message, reply)
     remember(message, reply)
+    from app.hooks import post_reply
+
+    post_reply(reply)
