@@ -1,7 +1,7 @@
 # Note: install torch separately with the right CUDA index URL first:
 #   pip install torch --index-url https://download.pytorch.org/whl/cu121
 
-gradio>=4.44
+gradio>=5.0,<6
 ollama>=0.4
 
 # Document reading / RAG
