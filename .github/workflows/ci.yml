@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Heavy ML deps aren't needed: the suite covers the pure-logic
+      # modules, and a compile check covers everything else.
+      - name: Install test dependencies
+        run: pip install pytest ollama
+
+      - name: Syntax-check every module
+        run: python -m py_compile app/*.py finetune/*.py evolve/*.py
+
+      - name: Enforce the 800-line file limit (CLAUDE.md rule)
+        run: |
+          over=$(wc -l app/*.py finetune/*.py | awk '$1 >= 800 && $2 != "total" {print $2}')
+          if [ -n "$over" ]; then echo "Files over 800 lines:"; echo "$over"; exit 1; fi
+
+      - name: Run tests
+        run: python -m pytest tests/ -q

@@ -27,6 +27,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Playbook library | Authored workflows loaded on demand (data/playbooks/) | Automatic |
 | Prompt evals | Graded test sets + LLM-as-judge (Evals tab) | On demand |
 | Prompt helper | Rewrites a rough prompt using prompt-eng techniques | On demand |
+| Test suite + CI | 37 pytest checks on guardrails; GitHub Actions on every push | Automatic |
 | Plan mode | Read-only exploration → approved plan → execute | Checkbox in Agent |
 | Slash commands | /help /status /memory /index … in Chat and Agent | Instant |
 | Scheduled loops | /loop <min> <prompt> — recurring agent runs with logs | Background |
@@ -387,4 +388,5 @@ data/documents/ put your files here, then index them
 data/chatlogs/  your conversations (auto-logged, used for fine-tuning)
 outputs/        generated images & videos
 setup/          install & update scripts
+tests/          pytest suite for the guardrail logic (run: pytest tests/)
 ```
