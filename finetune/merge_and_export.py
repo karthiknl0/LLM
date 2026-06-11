@@ -14,7 +14,13 @@ import torch
 from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from finetune.config import ADAPTER_DIR, BASE_MODEL, CUSTOM_MODEL_NAME, MERGED_DIR
+from finetune.config import (
+    ADAPTER_DIR,
+    BASE_MODEL,
+    CUSTOM_MODEL_NAME,
+    MERGED_DIR,
+    MODEL_SYSTEM_PROMPT,
+)
 
 
 def main() -> None:
@@ -38,7 +44,9 @@ def main() -> None:
     print(f"Merged model saved to {MERGED_DIR}")
 
     modelfile = MERGED_DIR / "Modelfile"
-    modelfile.write_text(f"FROM {MERGED_DIR}\n")
+    modelfile.write_text(
+        f'FROM {MERGED_DIR}\nSYSTEM """{MODEL_SYSTEM_PROMPT}"""\n'
+    )
 
     print(f"Importing into Ollama as '{CUSTOM_MODEL_NAME}' (quantized to 4-bit)...")
     try:

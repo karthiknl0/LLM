@@ -8,8 +8,15 @@ ROOT = Path(__file__).resolve().parent.parent
 # 7B is the sweet spot for QLoRA on 16 GB VRAM.
 BASE_MODEL = "Qwen/Qwen2.5-7B-Instruct"
 
-# What your personalized model will be called in Ollama
+# What your personalized model will be called in Ollama — pick any name
 CUSTOM_MODEL_NAME = "my-ai"
+
+# Baked into the model so it knows who it is (used when you run it
+# directly with `ollama run`; the hub's own prompts take over in-app).
+MODEL_SYSTEM_PROMPT = (
+    f"You are {CUSTOM_MODEL_NAME}, a personal AI fine-tuned on your "
+    "owner's own conversations. You run entirely on their computer."
+)
 
 CHATLOG_DIR = ROOT / "data" / "chatlogs"
 TRAINING_DIR = ROOT / "data" / "training"
