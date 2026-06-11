@@ -9,6 +9,8 @@ chromadb>=0.5
 pypdf>=4.0
 pandas>=2.0
 openpyxl>=3.1
+python-docx>=1.1
+python-pptx>=0.6
 
 # Vision (video frame extraction)
 opencv-python>=4.9

@@ -16,7 +16,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Learn from corrections | Behavioral lessons stored alongside facts | Automatic |
 | Teach itself skills | Reusable functions saved from solved tasks | Automatic |
 | Deep research / deep answer | Multi-angle search + self-review passes | Slower, better |
-| Read your PDFs / Excel / code (RAG) | Local vector DB (ChromaDB) + Ollama embeddings | Fast |
+| Read your PDFs / Excel / Word / PowerPoint / code (RAG) | Local vector DB (ChromaDB) + Ollama embeddings | Fast |
 | Chat with any GitHub repo | Shallow clone + the same RAG pipeline | Fast |
 | Edit, build & test code | Clone a repo, edit, run its tests/build, fix failures | Supervised |
 | Edit & push code to GitHub | Guarded git tools — ai/* branches only, you merge via PR | Supervised |

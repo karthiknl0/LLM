@@ -69,6 +69,30 @@ def _read_spreadsheet(path: Path) -> str:
     return "\n\n".join(parts)
 
 
+def _read_word(path: Path) -> str:
+    from docx import Document
+
+    doc = Document(str(path))
+    parts = [p.text for p in doc.paragraphs if p.text.strip()]
+    for table in doc.tables:
+        for row in table.rows:
+            parts.append(" | ".join(cell.text.strip() for cell in row.cells))
+    return "\n".join(parts)
+
+
+def _read_powerpoint(path: Path) -> str:
+    from pptx import Presentation
+
+    parts = []
+    for i, slide in enumerate(Presentation(str(path)).slides, 1):
+        texts = [
+            shape.text for shape in slide.shapes
+            if getattr(shape, "has_text_frame", False) and shape.text.strip()
+        ]
+        parts.append(f"## Slide {i}\n" + "\n".join(texts))
+    return "\n\n".join(parts)
+
+
 def _read_file(path: Path) -> str | None:
     suffix = path.suffix.lower()
     try:
@@ -76,6 +100,10 @@ def _read_file(path: Path) -> str | None:
             return _read_pdf(path)
         if suffix in (".xlsx", ".xls", ".csv"):
             return _read_spreadsheet(path)
+        if suffix == ".docx":
+            return _read_word(path)
+        if suffix == ".pptx":
+            return _read_powerpoint(path)
         if suffix in CODE_EXTENSIONS:
             return path.read_text(encoding="utf-8", errors="replace")
     except Exception as exc:  # skip unreadable files, keep indexing the rest
