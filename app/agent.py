@@ -499,6 +499,13 @@ def agent_chat(message, history: list[dict], deep_answer: bool = False):
     if not message and not files:
         yield "Say something or attach a file."
         return
+    if not files:
+        from app.commands import handle_command
+
+        command_reply = handle_command(message)
+        if command_reply is not None:
+            yield command_reply
+            return
 
     system = SYSTEM_PROMPT
     memories = recall(message) if message else []

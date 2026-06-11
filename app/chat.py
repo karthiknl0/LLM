@@ -9,6 +9,7 @@ import json
 
 import ollama
 
+from app.commands import handle_command
 from app.config import CHAT_MODEL, CHATLOG_DIR
 from app.history import compact_history
 from app.memory import recall, recall_lessons, remember
@@ -33,6 +34,11 @@ SYSTEM_PROMPT = (
 def stream_chat(message: str, history: list[dict], persona: str = DEFAULT_NAME):
     """Yield the assistant reply incrementally. `history` is a list of
     {"role", "content"} dicts as provided by gradio's chat component."""
+    command_reply = handle_command(message)
+    if command_reply is not None:
+        yield command_reply
+        return
+
     system = get_prompt(persona) or SYSTEM_PROMPT
     memories = recall(message)
     if memories:

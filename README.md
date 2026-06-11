@@ -27,6 +27,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Playbook library | Authored workflows loaded on demand (data/playbooks/) | Automatic |
 | Prompt evals | Graded test sets + LLM-as-judge (Evals tab) | On demand |
 | Prompt helper | Rewrites a rough prompt using prompt-eng techniques | On demand |
+| Slash commands | /help /status /memory /index … in Chat and Agent | Instant |
 | Understand images | Qwen 2.5-VL 7B vision model | Fast |
 | Understand videos | Frame sampling + vision model | Works (samples key frames) |
 | Look at your screen | Screenshot + vision model | Fast, stays on your machine |
@@ -131,6 +132,10 @@ running, models not pulled, GPU not visible, low disk — with the exact
 command to fix each.
 
 ## Using it
+
+Type `/help` in the Chat or Agent box for slash commands — instant
+actions like `/status`, `/memory`, `/index`, `/note <text>`, and
+`/approvals` without leaving the conversation.
 
 - **Agent** — the smartest way to use the hub: one chat where the model
   itself decides when to search your documents, research the web, run
