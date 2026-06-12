@@ -392,4 +392,6 @@ if __name__ == "__main__":
     port = int(os.environ.get("AIHUB_PORT", "7860"))
     password = os.environ.get("AIHUB_PASSWORD")
     auth = ("me", password) if password else None
-    build_app().launch(server_name=host, server_port=port, auth=auth)
+    build_app().launch(
+        server_name=host, server_port=port, auth=auth, inbrowser=True
+    )

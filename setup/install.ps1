@@ -29,6 +29,10 @@ Write-Host "==> Installing headless Chromium for browser verification"
 try { & .venv\Scripts\python.exe -m playwright install chromium }
 catch { Write-Host "    (skipped - browser verification disabled)" }
 
+Write-Host "==> Creating Desktop shortcut"
+try { powershell -ExecutionPolicy Bypass -File setup\make_shortcut.ps1 }
+catch { Write-Host "    (shortcut skipped - run setup\make_shortcut.ps1 manually)" }
+
 Write-Host ""
 Write-Host "Done. Start your hub with:"
 Write-Host "  powershell -ExecutionPolicy Bypass -File setup\start.ps1"
