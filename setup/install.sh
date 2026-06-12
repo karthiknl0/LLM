@@ -15,8 +15,8 @@ if ! command -v ollama >/dev/null 2>&1; then
     curl -fsSL https://ollama.com/install.sh | sh
 fi
 
-echo "==> Pulling local models (~15 GB total, one time)"
-ollama pull qwen3:14b
+echo "==> Pulling local models (~12 GB total, one time)"
+ollama pull qwen3:8b
 ollama pull qwen2.5vl:7b
 ollama pull nomic-embed-text
 

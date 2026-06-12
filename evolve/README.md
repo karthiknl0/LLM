@@ -26,7 +26,7 @@ openevolve-run evolve/initial_program.py evolve/evaluator.py \
 Progress and checkpoints land in `openevolve_output/` — the best program
 so far is saved at each checkpoint.
 
-## Expectations on a local 14B model
+## Expectations on a local 8B model
 
 Each iteration is one or more LLM calls, so 50 iterations takes on the
 order of an hour. Frontier-model results (GPU kernel speedups, etc.)

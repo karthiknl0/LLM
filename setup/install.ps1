@@ -10,8 +10,8 @@ if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) {
                 [Environment]::GetEnvironmentVariable("Path", "User")
 }
 
-Write-Host "==> Pulling local models (~15 GB total, one time)"
-ollama pull qwen3:14b
+Write-Host "==> Pulling local models (~12 GB total, one time)"
+ollama pull qwen3:8b
 ollama pull qwen2.5vl:7b
 ollama pull nomic-embed-text
 

@@ -9,7 +9,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 
 | Capability | How | Status on 16 GB GPU |
 |---|---|---|
-| Chat & coding help | Qwen 3 14B via Ollama (switchable in the UI) | Fast, fully on GPU |
+| Chat & coding help | Qwen 3 8B via Ollama (switchable in the UI) | Fast, fully on GPU |
 | Model dropdown | Switch the brain everywhere — also /model <name> | Instant |
 | Self-consistency voting | /vote samples N answers, returns the majority | Slower, accurate |
 | Agent mode (auto tool use) | Native tool calling: docs, web, Python, images | Fast |
@@ -64,7 +64,7 @@ curl -fsSL https://raw.githubusercontent.com/karthiknl0/LLM/main/setup/bootstrap
 ```
 
 Either clones the repo to `~/local-ai-hub` (or `%USERPROFILE%\local-ai-hub`)
-and runs the full setup — Ollama, the three models (~15 GB download),
+and runs the full setup — Ollama, the three models (~12 GB download),
 Python environment, and all dependencies. When it finishes:
 
 ```powershell
@@ -94,7 +94,7 @@ and the manual steps below do the same thing.
 curl -fsSL https://ollama.com/install.sh | sh
 # Windows: download the installer from https://ollama.com/download
 
-ollama pull qwen3:14b          # chat + coding brain (~9 GB)
+ollama pull qwen3:8b           # chat + coding brain
 ollama pull qwen2.5vl:7b       # vision: images & video frames (~6 GB)
 ollama pull nomic-embed-text   # embeddings for document search (~275 MB)
 ```
@@ -244,7 +244,7 @@ your style and becomes `my-ai` in Ollama. Full guide: `finetune/README.md`.
   long tasks the agent also keeps a scratchpad (`data/workspace/NOTES.md`)
   whose recent notes are always in view, so working state survives
   compaction.
-- Qwen 3 14B (4-bit) uses ~10 GB VRAM — fits fully on your GPU and is fast.
+- Qwen 3 8B uses less VRAM than the larger optional models and is fast.
 - Only one heavy model runs on the GPU at a time. The app loads image/video
   generators on demand and frees them afterwards; Ollama similarly swaps
   models. First request after switching tasks is slower — that's normal.
@@ -262,7 +262,7 @@ changes needed, it just talks to Ollama:
 ```bash
 pip install aider-chat
 cd your-project
-aider --model ollama/qwen3:14b
+aider --model ollama/qwen3:8b
 ```
 
 Or install the **Continue** extension in VS Code and point it at Ollama
@@ -322,7 +322,7 @@ Starter examples (filesystem, SQLite) are in `setup/mcp.example.json`;
 browse [awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
 for the full catalog. Two rules of thumb: prefer local-first servers
 that need no API keys, and keep the count low — every connected tool
-definition eats context, and a 14B model chooses tools best from a
+definition eats context, and an 8B model chooses tools best from a
 short, distinct list. One or two servers that match your real workflow
 beat ten installed "just in case".
 

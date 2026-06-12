@@ -14,5 +14,5 @@
     }
   },
 
-  "_usage": "Copy the entries you want into data/mcp.json (remove _comment keys), fix the paths, restart the app. Keep the server count low: every server's tools are added to the model's context, and a 14B model picks tools best from a short list."
+  "_usage": "Copy the entries you want into data/mcp.json (remove _comment keys), fix the paths, restart the app. Keep the server count low: every server's tools are added to the model's context, and an 8B model picks tools best from a short list."
 }
