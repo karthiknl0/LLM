@@ -28,11 +28,326 @@ from app.vision import analyze_media
 from app.voice import transcribe_file, voice_chat
 
 
-def build_app() -> gr.Blocks:
-    with gr.Blocks(title="Local AI Hub") as demo:
-        gr.Markdown("# Local AI Hub\nEverything runs on your own machine.")
+APP_CSS = """
+:root {
+    --aihub-bg: #0d0f12;
+    --aihub-panel: #171a1f;
+    --aihub-panel-soft: #20242b;
+    --aihub-border: #303741;
+    --aihub-border-strong: #46515f;
+    --aihub-text: #f4f6f8;
+    --aihub-muted: #a6adb8;
+    --aihub-accent: #f28c28;
+    --aihub-accent-soft: rgba(242, 140, 40, 0.14);
+    --aihub-green: #36c48f;
+}
 
-        with gr.Row():
+body,
+.gradio-container {
+    background:
+        linear-gradient(180deg, rgba(242, 140, 40, 0.05), transparent 260px),
+        var(--aihub-bg) !important;
+    color: var(--aihub-text) !important;
+    font-family:
+        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif !important;
+}
+
+.gradio-container {
+    max-width: none !important;
+    padding: 24px 28px 18px !important;
+}
+
+.app-title {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 16px;
+}
+
+.brand-lockup h1 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.1;
+    letter-spacing: 0;
+    color: var(--aihub-text);
+}
+
+.brand-lockup p {
+    margin: 9px 0 0;
+    color: var(--aihub-muted);
+    font-size: 14px;
+}
+
+.local-badge {
+    border: 1px solid rgba(54, 196, 143, 0.42);
+    background: rgba(54, 196, 143, 0.11);
+    color: #a8f2d5;
+    border-radius: 999px;
+    padding: 7px 11px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.model-row {
+    align-items: flex-end;
+    border: 1px solid var(--aihub-border);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+        var(--aihub-panel);
+    border-radius: 8px;
+    padding: 14px !important;
+    margin-bottom: 16px;
+}
+
+.model-status {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    color: var(--aihub-muted);
+    min-width: 220px;
+}
+
+.model-status code {
+    color: #ffd0a3;
+    background: var(--aihub-accent-soft);
+    border: 1px solid rgba(242, 140, 40, 0.28);
+    border-radius: 6px;
+    padding: 2px 6px;
+}
+
+.agent-status {
+    border: 1px solid rgba(242, 140, 40, 0.35);
+    background: var(--aihub-accent-soft);
+    border-radius: 7px;
+    color: #ffd0a3;
+    font-weight: 700;
+    margin: 0 0 10px;
+    padding: 9px 12px;
+}
+
+.agent-status p {
+    color: inherit !important;
+    margin: 0 !important;
+}
+
+.tab-nav,
+.tabs > .tab-nav {
+    border-bottom: 1px solid var(--aihub-border) !important;
+    gap: 4px;
+    overflow-x: auto;
+}
+
+.tab-nav button {
+    border: 0 !important;
+    border-radius: 7px 7px 0 0 !important;
+    color: #cbd3df !important;
+    font-weight: 700 !important;
+    opacity: 1 !important;
+    padding: 11px 14px !important;
+}
+
+.tabs > .tab-wrapper button {
+    color: #cbd3df !important;
+    opacity: 1 !important;
+}
+
+.tabs > .tab-wrapper button.selected {
+    color: #ff9d42 !important;
+}
+
+.tab-nav button:disabled {
+    color: #808896 !important;
+    opacity: 0.72 !important;
+}
+
+.tab-nav button.selected,
+.tab-nav button[aria-selected="true"] {
+    background: var(--aihub-accent-soft) !important;
+    color: #ffb66e !important;
+    box-shadow: inset 0 -2px 0 var(--aihub-accent) !important;
+}
+
+.tabitem {
+    padding-top: 18px !important;
+}
+
+.prose,
+.markdown,
+.gradio-container p {
+    color: var(--aihub-text);
+}
+
+.prose p,
+.markdown p {
+    color: var(--aihub-muted);
+    line-height: 1.55;
+}
+
+.block,
+.panel,
+.form,
+.input-container,
+.output-class,
+.aihub-chat,
+.contain {
+    border-color: var(--aihub-border) !important;
+    border-radius: 8px !important;
+}
+
+.block,
+.panel,
+.form {
+    background: var(--aihub-panel) !important;
+}
+
+label,
+.wrap label,
+.block-title,
+.label-wrap,
+.block-label {
+    color: #dce2ea !important;
+    font-weight: 700 !important;
+}
+
+label.float {
+    background: #1a1f26 !important;
+    border: 1px solid var(--aihub-border) !important;
+    color: #dce2ea !important;
+}
+
+.label-wrap,
+.block-label {
+    background: #1a1f26 !important;
+    border: 1px solid var(--aihub-border) !important;
+    border-radius: 6px !important;
+}
+
+input,
+textarea,
+select,
+.dropdown,
+.wrap,
+.wrap-inner {
+    background: var(--aihub-panel-soft) !important;
+    color: var(--aihub-text) !important;
+    border-color: var(--aihub-border-strong) !important;
+}
+
+textarea:focus,
+input:focus,
+.wrap:focus-within {
+    border-color: rgba(242, 140, 40, 0.72) !important;
+    box-shadow: 0 0 0 3px rgba(242, 140, 40, 0.12) !important;
+}
+
+button.primary,
+.primary {
+    background: linear-gradient(180deg, #ff9c35, #de7415) !important;
+    border-color: #f28c28 !important;
+    color: #16100a !important;
+    font-weight: 800 !important;
+}
+
+button.secondary,
+button:not(.selected) {
+    border-color: var(--aihub-border) !important;
+}
+
+.aihub-chat {
+    min-height: 390px !important;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 180px),
+        #111418 !important;
+}
+
+.message,
+.message-wrap {
+    border-radius: 8px !important;
+}
+
+.message.user {
+    background: #303540 !important;
+    border: 1px solid #47505d !important;
+}
+
+.message.bot {
+    background: #171b21 !important;
+    border: 1px solid var(--aihub-border) !important;
+}
+
+code {
+    background: #252a32 !important;
+    color: #f3d7b8 !important;
+    border-radius: 5px;
+    padding: 1px 5px;
+}
+
+table {
+    border-color: var(--aihub-border) !important;
+}
+
+@media (max-width: 780px) {
+    .gradio-container {
+        padding: 16px !important;
+    }
+
+    .app-title {
+        display: block;
+    }
+
+    .local-badge {
+        display: inline-block;
+        margin-top: 12px;
+    }
+}
+"""
+
+
+def refresh_models():
+    """Refresh Ollama models and select a valid active chat model."""
+    choices = installed_models()
+    active = current_model()
+    if choices and active not in choices:
+        active = choices[0]
+        set_model(active)
+    return gr.Dropdown(choices=choices, value=active), f"Active model: `{active}`"
+
+
+def agent_chat_ui(message, history, deep_answer=False, plan_mode=False):
+    """Agent UI wrapper with a status output independent of chat painting."""
+    last_reply = None
+    for reply in agent_chat(message, history, deep_answer, plan_mode):
+        last_reply = reply
+        yield reply, "AI is thinking…"
+    if last_reply is not None:
+        yield last_reply, "Ready"
+
+
+def build_app() -> gr.Blocks:
+    theme = gr.themes.Base(
+        primary_hue="orange",
+        neutral_hue="slate",
+        radius_size="sm",
+        spacing_size="sm",
+        text_size="md",
+    )
+    with gr.Blocks(title="Local AI Hub", theme=theme, css=APP_CSS) as demo:
+        gr.HTML(
+            """
+            <header class="app-title">
+                <div class="brand-lockup">
+                    <h1>Local AI Hub</h1>
+                    <p>Private multimodal AI workstation running on this machine.</p>
+                </div>
+                <div class="local-badge">Local runtime</div>
+            </header>
+            """
+        )
+
+        with gr.Row(elem_classes=["model-row"]):
             model_dropdown = gr.Dropdown(
                 choices=installed_models(),
                 value=current_model(),
@@ -40,8 +355,16 @@ def build_app() -> gr.Blocks:
                 "(chat, agent, team, research)",
                 scale=3,
             )
-            model_status = gr.Markdown()
+            model_refresh = gr.Button("Refresh models", scale=0, min_width=120)
+            model_status = gr.Markdown(
+                f"Active model: `{current_model()}`",
+                elem_classes=["model-status"],
+            )
         model_dropdown.change(set_model, inputs=model_dropdown, outputs=model_status)
+        model_refresh.click(
+            refresh_models,
+            outputs=[model_dropdown, model_status],
+        )
 
         with gr.Tab("Agent"):
             gr.Markdown(
@@ -51,10 +374,18 @@ def build_app() -> gr.Blocks:
                 "image. Attach images, videos, or data files with the 📎 "
                 "button."
             )
-            gr.ChatInterface(
-                fn=agent_chat,
+            agent_chatbot = gr.Chatbot(
                 type="messages",
+                elem_classes=["aihub-chat"],
+            )
+            agent_status = gr.Markdown("Ready", elem_classes=["agent-status"])
+            gr.ChatInterface(
+                fn=agent_chat_ui,
+                type="messages",
+                chatbot=agent_chatbot,
                 multimodal=True,
+                show_progress="full",
+                additional_outputs=[agent_status],
                 additional_inputs=[
                     gr.Checkbox(
                         label="Deep answer — the model reviews its own draft "
@@ -96,9 +427,14 @@ def build_app() -> gr.Blocks:
                 "a specialist persona below — or add your own as .md files "
                 "in `data/personas/`."
             )
+            plain_chatbot = gr.Chatbot(
+                type="messages",
+                elem_classes=["aihub-chat"],
+            )
             gr.ChatInterface(
                 fn=stream_chat,
                 type="messages",
+                chatbot=plain_chatbot,
                 additional_inputs=[
                     gr.Dropdown(
                         choices=list_personas(),

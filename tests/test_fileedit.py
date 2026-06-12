@@ -16,6 +16,24 @@ def test_read_outside_scope_refused(tmp_path, monkeypatch):
     assert "outside the allowed folders" in fileedit.read_file(str(outside))
 
 
+def test_list_files_and_search_content(tmp_path, monkeypatch):
+    _isolate(tmp_path, monkeypatch)
+    root = tmp_path / "allowed"
+    (root / "app").mkdir()
+    (root / "app" / "agent.py").write_text("def agent_chat():\n    return 'ok'\n")
+    (root / ".git").mkdir()
+    (root / ".git" / "ignored").write_text("agent_chat")
+
+    listing = fileedit.list_files(str(root), depth=2)
+    assert "app/" in listing
+    assert "agent.py" in listing
+    assert ".git" not in listing
+
+    results = fileedit.search_files("agent_chat", str(root))
+    assert "agent.py:1" in results
+    assert "ignored" not in results
+
+
 def test_propose_approve_applies_with_backup(tmp_path, monkeypatch):
     _isolate(tmp_path, monkeypatch)
     target = tmp_path / "allowed" / "note.txt"

@@ -16,6 +16,12 @@ from pathlib import Path
 from app.config import BACKUPS_DIR, EDIT_ROOTS
 
 MAX_READ_CHARS = 8000
+MAX_LIST_ENTRIES = 200
+MAX_SEARCH_RESULTS = 80
+SKIP_DIRS = {
+    ".git", ".venv", "venv", "__pycache__", "node_modules",
+    "dist", "build", ".idea", ".vscode",
+}
 
 _pending: dict[str, dict] = {}
 
@@ -47,6 +53,72 @@ def read_file(path: str) -> str:
     if len(text) > MAX_READ_CHARS:
         return text[:MAX_READ_CHARS] + f"\n... (truncated, file is {len(text)} chars)"
     return text or "(empty file)"
+
+
+def list_files(path: str, depth: int = 2) -> str:
+    """List a folder tree inside the allowed roots."""
+    target = Path(path).expanduser()
+    if not _allowed(target):
+        roots = ", ".join(str(r) for r in EDIT_ROOTS)
+        return f"'{path}' is outside the allowed folders ({roots})."
+    if not target.is_dir():
+        return f"No such folder: {path}"
+    depth = max(1, min(int(depth or 2), 5))
+    entries = []
+    try:
+        for item in sorted(target.rglob("*")):
+            relative = item.relative_to(target)
+            if set(relative.parts) & SKIP_DIRS or len(relative.parts) > depth:
+                continue
+            entries.append(str(relative) + ("/" if item.is_dir() else ""))
+            if len(entries) >= MAX_LIST_ENTRIES:
+                entries.append("... (listing truncated)")
+                break
+    except OSError as exc:
+        return f"Could not list {path}: {exc}"
+    return f"Folder: {target.resolve()}\n" + ("\n".join(entries) or "(empty)")
+
+
+def search_files(query: str, path: str) -> str:
+    """Search filenames and text content under an allowed folder."""
+    target = Path(path).expanduser()
+    if not _allowed(target):
+        roots = ", ".join(str(r) for r in EDIT_ROOTS)
+        return f"'{path}' is outside the allowed folders ({roots})."
+    if not target.is_dir():
+        return f"No such folder: {path}"
+    needle = (query or "").strip().lower()
+    if not needle:
+        return "Provide a search query."
+
+    results = []
+    try:
+        for item in sorted(target.rglob("*")):
+            relative = item.relative_to(target)
+            if not item.is_file() or set(relative.parts) & SKIP_DIRS:
+                continue
+            if needle in item.name.lower():
+                results.append(f"{relative}: filename match")
+            try:
+                if item.stat().st_size > 1_000_000:
+                    continue
+                text = item.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            for line_number, line in enumerate(text.splitlines(), 1):
+                if needle in line.lower():
+                    results.append(f"{relative}:{line_number}: {line.strip()[:240]}")
+                    if len(results) >= MAX_SEARCH_RESULTS:
+                        break
+            if len(results) >= MAX_SEARCH_RESULTS:
+                break
+    except OSError as exc:
+        return f"Could not search {path}: {exc}"
+    if not results:
+        return f"No matches for '{query}' under {target.resolve()}."
+    if len(results) >= MAX_SEARCH_RESULTS:
+        results.append("... (results truncated)")
+    return "\n".join(results)
 
 
 def propose_edit(path: str, new_content: str, reason: str = "") -> str:

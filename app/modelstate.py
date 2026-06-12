@@ -4,7 +4,7 @@ the /model command) switches it instantly for everything — chat,
 agent, team, research, memory extraction.
 """
 
-from app.config import CHAT_MODEL
+from app.config import CHAT_MODEL, EMBED_MODEL, VISION_MODEL
 
 _current = CHAT_MODEL
 
@@ -23,16 +23,19 @@ def set_model(name: str) -> str:
 
 
 def installed_models() -> list[str]:
-    """Chat-capable models pulled in Ollama (embedding models hidden)."""
+    """Chat-capable models pulled in Ollama."""
     try:
         import ollama
 
+        excluded = {
+            EMBED_MODEL.split(":", 1)[0],
+            VISION_MODEL.split(":", 1)[0],
+        }
         names = sorted(
             m["model"] for m in ollama.list()["models"]
-            if "embed" not in m["model"]
+            if "embed" not in m["model"].lower()
+            and m["model"].split(":", 1)[0] not in excluded
         )
     except Exception:
-        names = []
-    if _current not in names:
-        names.insert(0, _current)
+        return [_current]
     return names
