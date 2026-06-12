@@ -24,6 +24,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Edit your own files (approval-gated) | Proposes diffs; you approve in the Approvals tab; originals backed up | Supervised |
 | Edit & push code to GitHub | Guarded git tools — ai/* branches only, you merge via PR | Supervised |
 | Verify web pages in a browser | Headless Chromium + vision model + console errors | Fast |
+| Read your email (Gmail/IMAP) | Read-only agent tools — search_email, read_email | Optional setup |
 | Plug-in tools via MCP | Any Model Context Protocol server (data/mcp.json) | Depends on server |
 | Task scratchpad | Agent takes notes that survive context compaction | Automatic |
 | Playbook library | Authored workflows loaded on demand (data/playbooks/) | Automatic |
@@ -294,6 +295,36 @@ in C:/Users/you/notes/draft.md"* — the agent queues a diff and tells
 you it's waiting for approval. Allowed folders are `EDIT_ROOTS` in
 `app/config.py` (default: your home directory) — narrow it if you wish.
 
+## Email: read-only Gmail/IMAP for the agent
+
+The agent can search and read your inbox — **read-only by design**: it
+cannot send, delete, or even mark messages as read. Setup for Gmail
+(~5 minutes, no Google Cloud project needed):
+
+1. Enable **2-Step Verification** on your Google account.
+2. Create an **App Password** at myaccount.google.com/apppasswords
+3. Set the env vars before starting the hub:
+
+```powershell
+# Windows
+$env:AIHUB_IMAP_USER = "you@gmail.com"
+$env:AIHUB_IMAP_PASSWORD = "abcd efgh ijkl mnop"
+powershell -ExecutionPolicy Bypass -File setup\start.ps1
+```
+
+```bash
+# Linux
+AIHUB_IMAP_USER=you@gmail.com AIHUB_IMAP_PASSWORD=... bash setup/start.sh
+```
+
+Then ask the agent things like *"any emails about my order this week?"*
+or *"summarize my latest email from the bank"*. Works with any IMAP
+provider via `AIHUB_IMAP_HOST`. **Outlook.com/Microsoft 365** no longer
+allows IMAP passwords — connect it through a Microsoft 365 MCP server
+instead (e.g. `@softeria/ms-365-mcp-server` in `data/mcp.json`, which
+signs in with a device code). The Status tab shows whether email is
+configured.
+
 ## MCP: plug-in tools for the agent
 
 The agent speaks [Model Context Protocol](https://modelcontextprotocol.io) —
@@ -385,6 +416,7 @@ app/
   browser.py    headless-browser verification of web pages
   sandbox.py    Python execution for the agent (data/workspace/)
   skills.py     self-built skill library (data/skills/)
+  mail.py       read-only email over IMAP (search_email, read_email)
   screen.py     screen capture + vision analysis
   status.py     system health checks (Status tab)
   vision.py     image & video understanding

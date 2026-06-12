@@ -86,6 +86,17 @@ def _check_data() -> list[str]:
     return lines
 
 
+def _check_email() -> list[str]:
+    from app.mail import is_configured
+
+    if is_configured():
+        return [f"{OK} Email configured (read-only IMAP)"]
+    return [
+        f"{OK} Email not configured (optional — set AIHUB_IMAP_USER and "
+        "AIHUB_IMAP_PASSWORD; see README)"
+    ]
+
+
 def _check_mcp() -> list[str]:
     from app import mcp_client
 
@@ -108,6 +119,7 @@ def run_checks() -> str:
         ("Ollama & models", _check_ollama),
         ("GPU", _check_gpu),
         ("Data", _check_data),
+        ("Email", _check_email),
         ("MCP servers", _check_mcp),
     )
     report = ["## System status\n"]

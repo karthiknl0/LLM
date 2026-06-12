@@ -16,6 +16,7 @@ from app.config import WORKSPACE_DIR
 from app.modelstate import current_model
 from app.fileedit import propose_edit, read_file
 from app.history import compact_history
+from app.mail import read_email, search_email
 from app.memory import recall, recall_lessons, remember
 from app.notes import read_notes, recent_notes, take_note
 from app.playbooks import catalog_hint, load_playbook
@@ -29,7 +30,7 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
 READ_ONLY_TOOLS = {
     "search_documents", "web_research", "read_file", "git_clone",
     "git_status", "look_at_screen", "verify_in_browser", "read_notes",
-    "load_playbook",
+    "load_playbook", "search_email", "read_email",
 }
 
 PLAN_MODE_PROMPT = (
@@ -313,6 +314,46 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "search_email",
+            "description": (
+                "List the user's recent inbox emails (read-only), "
+                "optionally filtered by a search term. Returns ids, "
+                "subjects, senders, dates."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Optional search term",
+                    }
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_email",
+            "description": (
+                "Read one email by the numeric id from search_email "
+                "(read-only — cannot send or delete)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "email_id": {
+                        "type": "string",
+                        "description": "Numeric id from search_email",
+                    }
+                },
+                "required": ["email_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "verify_in_browser",
             "description": (
                 "Open a URL in a headless browser, screenshot it, analyze "
@@ -399,6 +440,8 @@ TOOL_FUNCTIONS = {
     "run_python": sandbox.run_python,
     "look_at_screen": screen.look_at_screen,
     "verify_in_browser": verify_in_browser,
+    "search_email": search_email,
+    "read_email": read_email,
     "take_note": take_note,
     "read_notes": read_notes,
     "load_playbook": load_playbook,
@@ -418,6 +461,8 @@ TOOL_STATUS = {
     "run_python": "Running Python code",
     "look_at_screen": "Looking at your screen",
     "verify_in_browser": "Verifying in the browser",
+    "search_email": "Searching your email (read-only)",
+    "read_email": "Reading an email",
     "take_note": "Taking a note",
     "read_notes": "Reading notes",
     "load_playbook": "Loading a playbook",
