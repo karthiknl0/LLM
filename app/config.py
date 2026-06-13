@@ -3,10 +3,15 @@
 from pathlib import Path
 
 # --- Ollama models (must be pulled first: `ollama pull <name>`) ---
-CHAT_MODEL = "qwen3:8b"           # main chat / coding model
-VISION_MODEL = "qwen2.5vl:7b"     # understands images & video frames
-# NB: gemma4 is multimodal on paper, but its image input via Ollama is
-# broken as of 2026-06 (describes images as noise) — keep qwen2.5vl.
+# Primary brain: gemma4:26b — a 25B Mixture-of-Experts (3.8B active), so it
+# stays fast once warm despite spilling to RAM on an 8 GB GPU, and it is the
+# smartest model that runs on this hardware. It is multimodal, so it also
+# serves vision. `qwen3:8b` remains a fast, fully-in-VRAM fallback you can
+# pick from the dropdown (no cold-load wait).
+CHAT_MODEL = "gemma4:26b"         # main chat / coding model (primary)
+VISION_MODEL = "gemma4:26b"       # same model understands images & video
+# NB: gemma4:e4b's image input via Ollama is broken (describes images as
+# noise); gemma4:26b's vision works correctly — that's why 26b serves both.
 EMBED_MODEL = "nomic-embed-text"  # embeddings for document search
 
 # --- Generation models (downloaded from Hugging Face on first use) ---

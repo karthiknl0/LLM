@@ -87,6 +87,14 @@ Model names are in `app/config.py` (`CHAT_MODEL`, `VISION_MODEL`,
 `set_model()` writes `data/model.txt`; `_load()` seeds it on startup, so the
 dropdown choice survives restarts.
 
+Current lineup: **`gemma4:26b`** is the primary brain (`CHAT_MODEL`) and ALSO
+the vision model (`VISION_MODEL`) — it's a multimodal MoE that's smart and
+fast-once-warm. `qwen3:8b` is a fast fully-in-VRAM fallback. `nomic-embed-text`
+is embeddings. Because the vision model is now a general chat model,
+`installed_models()` only hides embedding models from the chat picker (it must
+NOT hide the primary). NB: `gemma4:e4b`'s image input via Ollama is broken;
+only `26b` does vision correctly.
+
 ### Edit the app's own source as the local agent
 `EDIT_ROOTS = [Path.home()]` in config covers this repo (it's under the home
 dir), so the agent can `list_files`/`search_files`/`read_file` the source and
