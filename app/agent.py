@@ -3,6 +3,7 @@ search your documents, research the web, or generate an image — using
 Ollama's native tool calling. Fully local routing.
 """
 
+import json
 import shutil
 from pathlib import Path
 
@@ -549,6 +550,33 @@ def _answer_text(msg) -> str:
     return (msg["content"] or getattr(msg, "thinking", "") or "").strip()
 
 
+def _call_sig(call) -> str:
+    """Stable signature of a tool call, to detect a model repeating itself."""
+    fn = call["function"]
+    return fn["name"] + ":" + json.dumps(dict(fn["arguments"] or {}), sort_keys=True, default=str)
+
+
+def _force_answer(messages) -> str:
+    """gemma4 sometimes gathers info but never concludes. Ask once, plainly,
+    for the final answer with no further tools."""
+    messages = messages + [{
+        "role": "user",
+        "content": "Now write your final answer for me based on everything you "
+        "gathered above. Be specific and do not call any tools.",
+    }]
+    return _answer_text(ollama.chat(model=current_model(), messages=messages)["message"])
+
+
+def _conclude(msg, messages) -> str:
+    """Best final answer: the model's own content; else a forced no-tools
+    answer (gemma4 often gathers info but leaves content empty); else its
+    raw thinking as a last resort. Never returns blank."""
+    content = (msg["content"] or "").strip()
+    if content:
+        return content
+    return _force_answer(messages) or (getattr(msg, "thinking", "") or "").strip()
+
+
 def run_with_tools(system: str, user: str, max_rounds: int = MAX_TOOL_ROUNDS) -> str:
     """One-shot tool-using conversation, for other modules (team mode):
     same tools as the Agent tab, no streaming."""
@@ -562,17 +590,18 @@ def run_with_tools(system: str, user: str, max_rounds: int = MAX_TOOL_ROUNDS) ->
     tools, functions = _all_tools(), _all_functions()
     executed_code = []
     reply = "(no answer)"
+    seen_calls = set()
     for round_number in range(max_rounds + 1):
-        response = ollama.chat(
-            model=current_model(), messages=messages, tools=tools, think=False
-        )
+        response = ollama.chat(model=current_model(), messages=messages, tools=tools)
         msg = response["message"]
         tool_calls = getattr(msg, "tool_calls", None) or []
-        if not tool_calls or round_number == max_rounds:
-            reply = _answer_text(msg)
+        fresh = [c for c in tool_calls if _call_sig(c) not in seen_calls]
+        if not fresh or round_number == max_rounds:
+            reply = _conclude(msg, messages)
             break
         messages.append(msg)
-        for call in tool_calls:
+        for call in fresh:
+            seen_calls.add(_call_sig(call))
             name = call["function"]["name"]
             arguments = dict(call["function"]["arguments"] or {})
             block = hooks.pre_tool(name, arguments)
@@ -687,19 +716,21 @@ def agent_chat(
         functions = {k: v for k, v in functions.items() if k in READ_ONLY_TOOLS}
     reply = "(no answer)"
     executed_code = []
+    seen_calls = set()
     for _round in range(MAX_TOOL_ROUNDS + 1):
-        response = ollama.chat(
-            model=current_model(), messages=messages, tools=tools, think=False
-        )
+        response = ollama.chat(model=current_model(), messages=messages, tools=tools)
         msg = response["message"]
         tool_calls = getattr(msg, "tool_calls", None) or []
-
-        if not tool_calls or _round == MAX_TOOL_ROUNDS:
-            reply = _answer_text(msg)
+        # Act only on tool calls not already run this turn — gemma4 can loop on
+        # the same call (e.g. list_files) instead of concluding.
+        fresh = [c for c in tool_calls if _call_sig(c) not in seen_calls]
+        if not fresh or _round == MAX_TOOL_ROUNDS:
+            reply = _conclude(msg, messages)
             break
 
         messages.append(msg)
-        for call in tool_calls:
+        for call in fresh:
+            seen_calls.add(_call_sig(call))
             name = call["function"]["name"]
             arguments = dict(call["function"]["arguments"] or {})
             steps.append(f"*{TOOL_STATUS.get(name, 'Using ' + name.replace('_', ' '))}…*")
@@ -733,7 +764,7 @@ def agent_chat(
                 ),
             }
         )
-        review = ollama.chat(model=current_model(), messages=messages, think=False)
+        review = ollama.chat(model=current_model(), messages=messages)
         revised = _answer_text(review["message"])
         if revised:
             reply = revised
