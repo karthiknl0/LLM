@@ -10,11 +10,12 @@ import ollama
 
 from app import gittools, hooks, imagegen, mcp_client, rag, research, sandbox, screen, skills
 from app.browser import verify_in_browser
+from app.coding_profile import CODING_AGENT_PROFILE
 from app.instructions import standing_instructions
 from app.chat import _log_turn
-from app.config import WORKSPACE_DIR
+from app.config import ROOT, WORKSPACE_DIR
 from app.modelstate import current_model
-from app.fileedit import propose_edit, read_file
+from app.fileedit import list_files, propose_edit, read_file, search_files
 from app.history import compact_history
 from app.mail import read_email, search_email
 from app.memory import recall, recall_lessons, remember
@@ -28,7 +29,8 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
 # Plan mode: only these tools are available — inspection, no changes.
 # (git_clone is allowed: exploring a repo requires having it locally.)
 READ_ONLY_TOOLS = {
-    "search_documents", "web_research", "read_file", "git_clone",
+    "search_documents", "web_research", "read_file", "list_files",
+    "search_files", "git_clone",
     "git_status", "look_at_screen", "verify_in_browser", "read_notes",
     "load_playbook", "search_email", "read_email",
 }
@@ -56,7 +58,10 @@ SYSTEM_PROMPT = (
     "git_clone a repo, edit its files under repos/<name>/ with "
     "run_python, commit to an ai/ branch with git_commit, and call "
     "git_push ONLY when the user explicitly asks to push — the push "
-    "creates a branch they review as a pull request. For files outside "
+    "creates a branch they review as a pull request. "
+    f"Your own Local AI Hub source code is at {ROOT}. When asked about "
+    "this app or your own code, browse it with list_files or search_files, "
+    "then inspect relevant files with read_file. For files outside "
     "the workspace (the user's own documents/configs): read_file to "
     "inspect, propose_edit to suggest a change — edits apply ONLY after "
     "the user approves the diff in the Approvals tab, so always tell "
@@ -78,6 +83,7 @@ SYSTEM_PROMPT = (
     "first, then show it passing. After building or changing anything "
     "with a web page, verify_in_browser it (use file:// for HTML files "
     "in the workspace) and fix what the check reveals before answering."
+    "\n\nCODING AGENT OPERATING PROFILE:\n" + CODING_AGENT_PROFILE
 )
 
 TOOLS = [
@@ -149,6 +155,42 @@ TOOLS = [
                     "path": {"type": "string", "description": "Absolute file path"}
                 },
                 "required": ["path"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_files",
+            "description": (
+                f"List files and folders. Use path '{ROOT}' for your own "
+                "Local AI Hub source code."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Absolute folder path"},
+                    "depth": {"type": "integer", "description": "Depth from 1 to 5"},
+                },
+                "required": ["path"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_files",
+            "description": (
+                f"Search filenames and file content. Use path '{ROOT}' "
+                "to search your own Local AI Hub source code."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Text to find"},
+                    "path": {"type": "string", "description": "Absolute folder path"},
+                },
+                "required": ["query", "path"],
             },
         },
     },
@@ -447,6 +489,8 @@ TOOL_FUNCTIONS = {
     "load_playbook": load_playbook,
     "run_command": sandbox.run_command,
     "read_file": read_file,
+    "list_files": list_files,
+    "search_files": search_files,
     "propose_edit": propose_edit,
     "git_clone": gittools.git_clone,
     "git_status": gittools.git_status,
@@ -468,6 +512,8 @@ TOOL_STATUS = {
     "load_playbook": "Loading a playbook",
     "run_command": "Building / running tests",
     "read_file": "Reading a file",
+    "list_files": "Browsing project files",
+    "search_files": "Searching project code",
     "propose_edit": "Proposing a file edit (needs your approval)",
     "git_clone": "Cloning repository",
     "git_status": "Checking git status",
@@ -591,6 +637,10 @@ def agent_chat(
         if command_reply is not None:
             yield command_reply
             return
+
+    # Render an assistant bubble immediately. The first Ollama call may take
+    # several seconds on local hardware, especially when the model is loading.
+    yield "*Thinking…*"
 
     system = SYSTEM_PROMPT
     memories = recall(message) if message else []

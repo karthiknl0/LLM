@@ -4,9 +4,22 @@ the /model command) switches it instantly for everything — chat,
 agent, team, research, memory extraction.
 """
 
-from app.config import CHAT_MODEL
+from app.config import CHAT_MODEL, EMBED_MODEL, ROOT, VISION_MODEL
 
-_current = CHAT_MODEL
+# Remembers the chosen model across restarts so the dropdown doesn't
+# snap back to the config default every launch.
+_STATE_FILE = ROOT / "data" / "model.txt"
+
+
+def _load() -> str:
+    try:
+        saved = _STATE_FILE.read_text(encoding="utf-8").strip()
+    except OSError:
+        saved = ""
+    return saved or CHAT_MODEL
+
+
+_current = _load()
 
 
 def current_model() -> str:
@@ -19,20 +32,28 @@ def set_model(name: str) -> str:
     if not name:
         return f"Active model: `{_current}`"
     _current = name
+    try:
+        _STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _STATE_FILE.write_text(name, encoding="utf-8")
+    except OSError:
+        pass  # in-memory selection still works if the disk write fails
     return f"Active model: `{name}`"
 
 
 def installed_models() -> list[str]:
-    """Chat-capable models pulled in Ollama (embedding models hidden)."""
+    """Chat-capable models pulled in Ollama."""
     try:
         import ollama
 
+        excluded = {
+            EMBED_MODEL.split(":", 1)[0],
+            VISION_MODEL.split(":", 1)[0],
+        }
         names = sorted(
             m["model"] for m in ollama.list()["models"]
-            if "embed" not in m["model"]
+            if "embed" not in m["model"].lower()
+            and m["model"].split(":", 1)[0] not in excluded
         )
     except Exception:
-        names = []
-    if _current not in names:
-        names.insert(0, _current)
+        return [_current]
     return names
