@@ -542,6 +542,13 @@ def _skill_hints(task: str) -> str:
     )
 
 
+def _answer_text(msg) -> str:
+    """Final reply text. gemma4 in the tool loop sometimes leaves `content`
+    empty and puts its answer in the separate `thinking` field — fall back
+    to that so the user never gets a blank reply."""
+    return (msg["content"] or getattr(msg, "thinking", "") or "").strip()
+
+
 def run_with_tools(system: str, user: str, max_rounds: int = MAX_TOOL_ROUNDS) -> str:
     """One-shot tool-using conversation, for other modules (team mode):
     same tools as the Agent tab, no streaming."""
@@ -556,11 +563,13 @@ def run_with_tools(system: str, user: str, max_rounds: int = MAX_TOOL_ROUNDS) ->
     executed_code = []
     reply = "(no answer)"
     for round_number in range(max_rounds + 1):
-        response = ollama.chat(model=current_model(), messages=messages, tools=tools)
+        response = ollama.chat(
+            model=current_model(), messages=messages, tools=tools, think=False
+        )
         msg = response["message"]
         tool_calls = getattr(msg, "tool_calls", None) or []
         if not tool_calls or round_number == max_rounds:
-            reply = msg["content"]
+            reply = _answer_text(msg)
             break
         messages.append(msg)
         for call in tool_calls:
@@ -679,12 +688,14 @@ def agent_chat(
     reply = "(no answer)"
     executed_code = []
     for _round in range(MAX_TOOL_ROUNDS + 1):
-        response = ollama.chat(model=current_model(), messages=messages, tools=tools)
+        response = ollama.chat(
+            model=current_model(), messages=messages, tools=tools, think=False
+        )
         msg = response["message"]
         tool_calls = getattr(msg, "tool_calls", None) or []
 
         if not tool_calls or _round == MAX_TOOL_ROUNDS:
-            reply = msg["content"]
+            reply = _answer_text(msg)
             break
 
         messages.append(msg)
@@ -722,8 +733,8 @@ def agent_chat(
                 ),
             }
         )
-        review = ollama.chat(model=current_model(), messages=messages)
-        revised = review["message"]["content"].strip()
+        review = ollama.chat(model=current_model(), messages=messages, think=False)
+        revised = _answer_text(review["message"])
         if revised:
             reply = revised
 
