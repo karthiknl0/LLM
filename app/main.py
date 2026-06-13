@@ -54,7 +54,8 @@ body,
 }
 
 .gradio-container {
-    max-width: none !important;
+    max-width: 1180px !important;
+    margin: 0 auto !important;
     padding: 24px 28px 18px !important;
 }
 
@@ -137,7 +138,7 @@ body,
 .tabs > .tab-nav {
     border-bottom: 1px solid var(--aihub-border) !important;
     gap: 4px;
-    overflow-x: auto;
+    flex-wrap: wrap;
 }
 
 .tab-nav button {
@@ -257,7 +258,7 @@ button:not(.selected) {
 }
 
 .aihub-chat {
-    min-height: 390px !important;
+    min-height: 440px !important;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 180px),
         #111418 !important;
