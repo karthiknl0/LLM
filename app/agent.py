@@ -313,6 +313,22 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "git_pull",
+            "description": "Pull latest commits into an existing local git repo at an absolute path (e.g. C:/Users/me/my-project). Fast-forward only; never discards local work. Use when asked to pull or update a repo.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Absolute path to the git repo"},
+                    "remote": {"type": "string", "description": "Remote, default origin"},
+                    "branch": {"type": "string", "description": "Branch to pull, e.g. main"},
+                },
+                "required": ["path"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "take_note",
             "description": (
                 "Append a note to your persistent scratchpad. Use during "
@@ -497,6 +513,7 @@ TOOL_FUNCTIONS = {
     "git_status": gittools.git_status,
     "git_commit": gittools.git_commit,
     "git_push": gittools.git_push,
+    "git_pull": gittools.git_pull,
 }
 
 TOOL_STATUS = {
@@ -520,6 +537,7 @@ TOOL_STATUS = {
     "git_status": "Checking git status",
     "git_commit": "Committing changes",
     "git_push": "Pushing branch",
+    "git_pull": "Pulling latest from git",
 }
 
 

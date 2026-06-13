@@ -16,7 +16,9 @@ import os
 import re
 import subprocess
 
-from app.config import WORKSPACE_DIR
+from pathlib import Path
+
+from app.config import EDIT_ROOTS, WORKSPACE_DIR
 
 REPOS_DIR = WORKSPACE_DIR / "repos"
 BRANCH_PATTERN = re.compile(r"ai/[A-Za-z0-9._-]+")
@@ -161,3 +163,39 @@ def git_push(repo: str) -> str:
         f"Pushed branch '{branch}'. Open a pull request on GitHub to "
         "review and merge it."
     )
+
+
+def _within_allowed(path: Path) -> bool:
+    """True if path is inside one of the user's allowed folders (home dir)."""
+    try:
+        resolved = path.resolve()
+    except OSError:
+        return False
+    for root in EDIT_ROOTS:
+        root = root.resolve()
+        if resolved == root or root in resolved.parents:
+            return True
+    return False
+
+
+def git_pull(path: str, remote: str = "origin", branch: str = "") -> str:
+    """Pull latest commits into an existing local git repo at an absolute
+    path (anywhere in the user's allowed folders). Fast-forward only — it
+    never force-pulls or discards local work; if the branch has diverged it
+    reports that instead of merging."""
+    target = Path(path or "").expanduser()
+    if not _within_allowed(target):
+        roots = ", ".join(str(r) for r in EDIT_ROOTS)
+        return f"'{path}' is outside the allowed folders ({roots})."
+    if not (target / ".git").exists():
+        return f"No git repository at '{path}' (no .git folder there)."
+    args = ["pull", "--ff-only", (remote or "origin").strip()]
+    if (branch or "").strip():
+        args.append(branch.strip())
+    ok, output = _git(target, *args, timeout=300)
+    if not ok:
+        return (
+            f"git pull failed (the branch may have diverged — pull is "
+            f"fast-forward-only here):\n{output[:800]}"
+        )
+    return f"Pulled into {target}:\n{output[:1500]}"
