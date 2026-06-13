@@ -4,7 +4,7 @@ from pathlib import Path
 
 # --- Ollama models (must be pulled first: `ollama pull <name>`) ---
 CHAT_MODEL = "qwen3:8b"           # main chat / coding model
-VISION_MODEL = "qwen2.5vl:7b"     # understands images & video frames
+VISION_MODEL = "gemma4:e4b"       # understands images & video frames
 EMBED_MODEL = "nomic-embed-text"  # embeddings for document search
 
 # --- Generation models (downloaded from Hugging Face on first use) ---

@@ -4,7 +4,7 @@ the /model command) switches it instantly for everything — chat,
 agent, team, research, memory extraction.
 """
 
-from app.config import CHAT_MODEL, EMBED_MODEL, ROOT, VISION_MODEL
+from app.config import CHAT_MODEL, ROOT, VISION_MODEL
 
 # Remembers the chosen model across restarts so the dropdown doesn't
 # snap back to the config default every launch.
@@ -41,18 +41,14 @@ def set_model(name: str) -> str:
 
 
 def installed_models() -> list[str]:
-    """Chat-capable models pulled in Ollama."""
+    """Chat-capable models pulled in Ollama (embedding and vision hidden)."""
     try:
         import ollama
 
-        excluded = {
-            EMBED_MODEL.split(":", 1)[0],
-            VISION_MODEL.split(":", 1)[0],
-        }
         names = sorted(
             m["model"] for m in ollama.list()["models"]
             if "embed" not in m["model"].lower()
-            and m["model"].split(":", 1)[0] not in excluded
+            and m["model"] != VISION_MODEL
         )
     except Exception:
         return [_current]
