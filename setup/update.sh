@@ -9,8 +9,8 @@ echo "==> Updating app code"
 git pull --ff-only || echo "    (skipped — not on a tracking branch)"
 
 echo "==> Updating local models to their latest versions"
-ollama pull qwen3:14b
-ollama pull qwen2.5vl:7b
+ollama pull gemma4:26b
+ollama pull qwen3:8b
 ollama pull nomic-embed-text
 
 echo "==> Updating Python dependencies"

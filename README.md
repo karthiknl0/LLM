@@ -95,8 +95,8 @@ and the manual steps below do the same thing.
 curl -fsSL https://ollama.com/install.sh | sh
 # Windows: download the installer from https://ollama.com/download
 
-ollama pull qwen3:14b          # chat + coding brain (~9 GB)
-ollama pull qwen2.5vl:7b       # vision: images & video frames (~6 GB)
+ollama pull gemma4:26b         # primary brain + vision (~17 GB, MoE: fast once warm)
+ollama pull qwen3:8b           # fast fully-in-VRAM fallback (~5 GB)
 ollama pull nomic-embed-text   # embeddings for document search (~275 MB)
 ```
 
