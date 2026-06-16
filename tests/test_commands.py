@@ -29,7 +29,7 @@ def test_playbook_requires_name():
 
 def test_export_chat_writes_markdown(tmp_path, monkeypatch):
     import app.commands as commands_module
-    import app.config as config
+    import app.core.config as config
 
     monkeypatch.setattr(config, "OUTPUTS_DIR", tmp_path)
     history = [

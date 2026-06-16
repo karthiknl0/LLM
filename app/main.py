@@ -7,25 +7,25 @@ Then open: http://localhost:7860
 import gradio as gr
 
 from app.agent import agent_chat
-from app.chat import stream_chat
-from app.config import CHAT_MODEL, DOCUMENTS_DIR, VISION_MODEL
-from app.imagegen import generate_image
+from app.chat.stream import stream_chat
+from app.core.config import CHAT_MODEL, DOCUMENTS_DIR, VISION_MODEL
+from app.media.imagegen import generate_image
 from app.memory import clear_memories, list_memories
-from app.modelstate import current_model, installed_models, set_model
+from app.session.modelstate import current_model, installed_models, set_model
 from app.personas import DEFAULT_NAME, list_personas
 from app.rag import ask_documents, index_documents
 from app.repo import add_repo
-from app.research import deep_research, research
-from app.screen import capture_and_analyze
+from app.services.research import deep_research, research
+from app.tools.screen import capture_and_analyze
 from app.skills import list_skills
-from app.evals import list_sets, run_eval
-from app.fileedit import approve, list_pending, reject, show_diff
-from app.promptlab import improve_prompt
-from app.status import run_checks
-from app.team import team_run
-from app.videogen import generate_video
-from app.vision import analyze_media
-from app.voice import transcribe_file, voice_chat
+from app.session.evals import list_sets, run_eval
+from app.tools.file_ops import approve, list_pending, reject, show_diff
+from app.session.promptlab import improve_prompt
+from app.session.status import run_checks
+from app.subagents import team_run
+from app.media.videogen import generate_video
+from app.media.vision import analyze_media
+from app.media.voice import transcribe_file, voice_chat
 
 
 APP_CSS = """
@@ -719,7 +719,7 @@ def build_app() -> gr.Blocks:
 if __name__ == "__main__":
     import os
 
-    from app.hooks import session_start
+    from app.services.hooks import session_start
 
     session_start()
 

@@ -1,6 +1,6 @@
 import json
 
-import app.hooks as hooks
+import app.services.hooks as hooks
 
 
 def _config(tmp_path, monkeypatch, data):

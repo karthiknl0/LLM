@@ -1,6 +1,6 @@
 from email.message import EmailMessage
 
-import app.mail as mail
+import app.services.mail as mail
 
 
 def test_unconfigured_returns_setup_message(monkeypatch):
