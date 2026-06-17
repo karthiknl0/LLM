@@ -1,4 +1,4 @@
-import app.consistency as consistency
+import app.security.consistency as consistency
 
 
 def test_final_line_extracts_last():

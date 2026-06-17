@@ -1,4 +1,4 @@
-import app.sandbox as sandbox
+import app.tools.code_exec as sandbox
 
 
 def _isolate(tmp_path, monkeypatch):

@@ -1,5 +1,5 @@
-import app.modelstate as modelstate
-from app.config import CHAT_MODEL
+import app.session.modelstate as modelstate
+from app.core.config import CHAT_MODEL
 
 
 def test_defaults_to_config(monkeypatch):

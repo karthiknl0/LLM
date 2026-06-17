@@ -1,4 +1,4 @@
-import app.playbooks as playbooks
+import app.content.playbooks as playbooks
 
 
 def _isolate(tmp_path, monkeypatch):
