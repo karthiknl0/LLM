@@ -34,7 +34,9 @@ def force_answer(messages) -> str:
         "content": "Now write your final answer for me based on everything you "
         "gathered above. Be specific and do not call any tools.",
     }]
-    return answer_text(ollama.chat(model=current_model(), messages=messages)["message"])
+    return answer_text(
+        ollama.chat(model=current_model(), messages=messages, think=False)["message"]
+    )
 
 
 def conclude(msg, messages) -> str:
@@ -64,7 +66,9 @@ def run_with_tools(system: str, user: str, max_rounds: int = MAX_TOOL_ROUNDS) ->
     reply = "(no answer)"
     seen_calls = set()
     for round_number in range(max_rounds + 1):
-        response = ollama.chat(model=current_model(), messages=messages, tools=tools)
+        response = ollama.chat(
+            model=current_model(), messages=messages, tools=tools, think=False
+        )
         msg = response["message"]
         tool_calls = getattr(msg, "tool_calls", None) or []
         fresh = [c for c in tool_calls if call_sig(c) not in seen_calls]

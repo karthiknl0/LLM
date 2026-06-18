@@ -71,7 +71,9 @@ def stream_chat(message: str, history: list[dict], persona: str = DEFAULT_NAME):
     messages.append({"role": "user", "content": message})
 
     reply = ""
-    for part in ollama.chat(model=current_model(), messages=messages, stream=True):
+    for part in ollama.chat(
+        model=current_model(), messages=messages, stream=True, think=False
+    ):
         reply += part["message"]["content"]
         yield reply
 

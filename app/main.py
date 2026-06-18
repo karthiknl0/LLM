@@ -385,7 +385,7 @@ def build_app() -> gr.Blocks:
                 type="messages",
                 chatbot=agent_chatbot,
                 multimodal=True,
-                show_progress="full",
+                show_progress="minimal",
                 additional_outputs=[agent_status],
                 additional_inputs=[
                     gr.Checkbox(

@@ -111,6 +111,11 @@ def agent_chat(
     messages.append({"role": "user", "content": user_content})
 
     tools, functions = all_tools(), all_functions()
+    if files:  # the user attached the media directly — capturing the live
+        # screen is the wrong tool (and returns blank), so remove it. The
+        # vision model's analysis of the attachment is already in context.
+        tools = [t for t in tools if t["function"]["name"] != "look_at_screen"]
+        functions = {k: v for k, v in functions.items() if k != "look_at_screen"}
     if plan_mode:  # hard guarantee, not just a prompt: write tools removed
         tools = [t for t in tools if t["function"]["name"] in READ_ONLY_TOOLS]
         functions = {k: v for k, v in functions.items() if k in READ_ONLY_TOOLS}
@@ -118,14 +123,28 @@ def agent_chat(
     executed_code = []
     seen_calls = set()
     for _round in range(MAX_TOOL_ROUNDS + 1):
-        response = ollama.chat(model=current_model(), messages=messages, tools=tools)
-        msg = response["message"]
-        tool_calls = getattr(msg, "tool_calls", None) or []
-        # Act only on tool calls not already run this turn — gemma4 can loop on
+        # Stream the call: tool-deciding rounds send no content (just tool
+        # calls), so nothing shows; the final answer round streams its tokens
+        # live so the user watches the reply appear instead of a spinner.
+        prefix = ("\n\n".join(steps) + "\n\n") if steps else ""
+        content = ""
+        tool_calls = []
+        for part in ollama.chat(
+            model=current_model(), messages=messages, tools=tools,
+            think=False, stream=True,
+        ):
+            m = part["message"]
+            if m.get("content"):
+                content += m["content"]
+                yield prefix + content
+            if m.get("tool_calls"):
+                tool_calls.extend(m["tool_calls"])
+        msg = {"role": "assistant", "content": content, "tool_calls": tool_calls}
+        # Act only on tool calls not already run this turn — a model can loop on
         # the same call (e.g. list_files) instead of concluding.
         fresh = [c for c in tool_calls if call_sig(c) not in seen_calls]
         if not fresh or _round == MAX_TOOL_ROUNDS:
-            reply = conclude(msg, messages)
+            reply = content.strip() or conclude(msg, messages)
             break
 
         messages.append(msg)
@@ -164,7 +183,7 @@ def agent_chat(
                 ),
             }
         )
-        review = ollama.chat(model=current_model(), messages=messages)
+        review = ollama.chat(model=current_model(), messages=messages, think=False)
         revised = answer_text(review["message"])
         if revised:
             reply = revised
