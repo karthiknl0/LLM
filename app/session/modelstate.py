@@ -43,7 +43,7 @@ def set_model(name: str) -> str:
 def installed_models() -> list[str]:
     """Chat-capable models pulled in Ollama (embedding models hidden).
 
-    The primary model (gemma4:26b) also serves vision, so it must stay in
+    The primary model (qwen3.5:4b) also serves vision, so it must stay in
     this list — only dedicated embedding models are filtered out.
     """
     try:

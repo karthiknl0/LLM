@@ -10,9 +10,8 @@ if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) {
                 [Environment]::GetEnvironmentVariable("Path", "User")
 }
 
-Write-Host "==> Pulling local models (~22 GB total, one time)"
-ollama pull gemma4:26b         # primary brain + vision (MoE, fast once warm)
-ollama pull qwen3:8b           # fast fully-in-VRAM fallback
+Write-Host "==> Pulling local models (~3.5 GB total, one time)"
+ollama pull qwen3.5:4b         # primary brain + vision (fits 100% in VRAM)
 ollama pull nomic-embed-text   # embeddings for document search
 
 Write-Host "==> Creating Python virtual environment"

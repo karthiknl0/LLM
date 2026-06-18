@@ -7,60 +7,77 @@ description: Architecture map of the Local AI Hub codebase — which file owns w
 
 Fully-local multimodal assistant. Gradio web UI + Ollama models. No cloud,
 no telemetry. Target hardware: NVIDIA RTX 4060, **8.6 GB VRAM**, 32 GB RAM
-(the code says "16 GB" in places — that was the original assumption; treat
-8 GB as the real constraint: only one big model on the GPU at a time).
+(treat 8 GB as the real constraint: only one big model on the GPU at a time).
 
 Run it: `python -m app.main` (needs `ollama serve` running). Opens at
 http://localhost:7860. Tests: `.\.venv\Scripts\python.exe -m pytest -q`.
 
 ## Hard rules (CI-enforced / convention)
 
-- **Every file < 800 lines.** `agent.py` and `main.py` are both ~735 —
-  near the cap. Do NOT bloat them; if a change needs real space there,
-  split into a new module instead.
-- One capability per module under `app/`. The Gradio UI lives ONLY in
+- **Every file < 800 lines.** Split into a new submodule before bloating any file.
+- One capability per package under `app/`. The Gradio UI lives ONLY in
   `app/main.py`; all logic lives in its own module.
 - Heavy ML models load lazily on first use, released after use where VRAM
   matters. Features degrade gracefully — a missing optional dep or failed
   model load prints a warning, never crashes the app.
 - Everything runs locally. No cloud APIs, no telemetry, no API keys.
 
-## Where things live
+## Package layout
 
-| Concern | File |
-|---|---|
-| Config: model names, all paths, RAG settings | `app/config.py` |
-| Active chat model (runtime, persisted to `data/model.txt`) | `app/modelstate.py` |
-| Gradio UI — every tab, the CSS, the launch block | `app/main.py` |
-| Agent loop + ALL tool schemas + system prompt | `app/agent.py` |
-| Coding-agent operating profile (appended to system prompt) | `app/coding_profile.py` |
-| Standing instructions (the hub's CLAUDE.md, from `data/instructions.md`) | `app/instructions.py` |
-| Plain chat (no tools) streaming | `app/chat.py` |
-| Multi-agent team (planner/workers/reviewer) | `app/team.py` |
-| File read / list / search / approval-gated edit | `app/fileedit.py` |
-| Sandboxed `run_python` / `run_command` | `app/sandbox.py` |
-| Git tools (clone, status, commit, push to ai/ branch) | `app/gittools.py` |
-| RAG over documents (index + query) | `app/rag.py` |
-| Web research (search + read + cite) | `app/research.py` |
-| Long-term memory + lessons | `app/memory.py` |
-| Vision (image/video understanding) | `app/vision.py` |
-| Screen capture + analyze | `app/screen.py` |
-| Voice in/out (Whisper + Kokoro) | `app/voice.py` |
-| Audio/video transcription | `app/voice.py` / `app/vision.py` |
-| Image gen (SDXL Turbo) / Video gen (LTX) | `app/imagegen.py` / `app/videogen.py` |
-| Self-taught skills | `app/skills.py` |
-| Authored playbooks | `app/playbooks.py` |
-| Evals (LLM-as-judge) | `app/evals.py` |
-| Personas | `app/personas.py` |
-| Slash commands (e.g. /model, /vote) | `app/commands.py` |
-| Self-consistency voting | `app/consistency.py` |
-| Read-only email (Gmail/IMAP) | `app/mail.py` |
-| MCP client | `app/mcp_client.py` |
-| Browser verify | `app/browser.py` |
-| Health checks (Status tab) | `app/status.py` |
-| Prompt improver (Prompt Helper tab) | `app/promptlab.py` |
-| Notes (survive context compaction) | `app/notes.py` |
-| Session-start hook | `app/hooks.py` |
+```
+app/
+  main.py              — Gradio UI: every tab, CSS, launch block
+  core/config.py       — model names, all paths, RAG settings, EDIT_ROOTS
+  agent/
+    loop.py            — streaming generator for the Agent tab (main entry)
+    runner.py          — one-shot tool-calling loop + execution helpers
+    modes.py           — MAX_TOOL_ROUNDS, READ_ONLY_TOOLS, PLAN_MODE_PROMPT
+    prompt.py          — SYSTEM_PROMPT, skill_hints()
+  tools/
+    registry.py        — ALL tool JSON schemas (TOOLS list), TOOL_FUNCTIONS
+                         dispatch table, TOOL_STATUS labels, MCP merge helpers
+    file_ops.py        — list_files, read_file, search_files, propose_edit
+    code_exec.py       — run_python, run_command (sandboxed)
+    git_ops.py         — git_clone, git_status, git_commit, git_push, git_pull
+    browser.py         — verify_in_browser
+    screen.py          — look_at_screen
+  chat/
+    stream.py          — plain chat (no tools) streaming, _log_turn
+    history.py         — chat history helpers
+  rag/
+    index.py           — document indexing (chunking + embedding)
+    query.py           — retrieve_context (semantic search)
+    readers.py         — file-type readers (PDF, DOCX, TXT, …)
+  memory/store.py      — long-term memory + lessons (recall, remember)
+  skills/library.py    — self-taught skills (maybe_learn, load/save)
+  subagents/team.py    — multi-agent team (planner / workers / reviewer)
+  content/
+    instructions.py    — standing instructions from data/instructions.md
+    coding_profile.py  — CODING_AGENT_PROFILE (appended to system prompt)
+    playbooks.py       — authored playbooks (load_playbook, catalog_hint)
+    notes.py           — session notes (read_notes, take_note)
+  session/
+    modelstate.py      — runtime model selection, persisted to data/model.txt
+    evals.py           — LLM-as-judge evals
+    promptlab.py       — Prompt Helper tab logic
+    status.py          — health checks (Status tab)
+  services/
+    research.py        — web research (search + read + cite)
+    mcp.py             — MCP client (was mcp_client.py)
+    hooks.py           — session-start hooks (pre_tool, post_reply)
+    mail.py            — read-only email (Gmail/IMAP)
+    scheduler.py       — scheduled tasks
+  media/
+    vision.py          — image/video understanding (analyze_media)
+    voice.py           — voice in/out (Whisper + Kokoro), transcription
+    imagegen.py        — image gen (SDXL Turbo)
+    videogen.py        — video gen (LTX)
+  personas/manager.py  — persona management
+  repo/manager.py      — repo management helpers
+  security/
+    consistency.py     — self-consistency voting
+  commands/handlers.py — slash commands (/model, /vote, …)
+```
 
 Data dirs (all gitignored, under `data/`): documents, vectordb, chatlogs,
 training, workspace, personas, skills, playbooks, evals, backups. Plus
@@ -69,39 +86,43 @@ files: `instructions.md`, `model.txt`, `hooks.json`, `mcp.json`.
 ## Recipes
 
 ### Add a new tab
-1. Write the logic in a new `app/<feature>.py` (one capability per module).
+1. Write the logic in a new module under the appropriate `app/<package>/`.
 2. In `app/main.py`: import its entry function, add a `with gr.Tab("Name"):`
-   block following the existing pattern (a `gr.Markdown` intro, inputs, a
-   `variant="primary"` button, an output, and a `.click(...)`).
+   block — `gr.Markdown` intro, inputs, a `variant="primary"` button, output,
+   `.click(...)`.
 3. Keep `main.py` under 800 lines — the block is just wiring, not logic.
 
 ### Add an agent tool
-In `app/agent.py`: (1) add the JSON schema to the `TOOLS` list, (2) map the
-name to its function in `TOOL_FUNCTIONS`, (3) add a label in `TOOL_STATUS`,
-(4) if it's read-only (safe in Plan mode) add the name to `READ_ONLY_TOOLS`.
-The function itself lives in the relevant module, not in `agent.py`.
+In `app/tools/registry.py`: (1) add the JSON schema to the `TOOLS` list,
+(2) map the name to its callable in `TOOL_FUNCTIONS`, (3) add a label in
+`TOOL_STATUS`, (4) if read-only (safe in Plan mode) add the name to
+`READ_ONLY_TOOLS` in `app/agent/modes.py`.
+The function itself lives in the relevant module, not in `registry.py`.
 
 ### Change / persist the active model
-Model names are in `app/config.py` (`CHAT_MODEL`, `VISION_MODEL`,
-`EMBED_MODEL`). The *runtime* selection lives in `app/modelstate.py`:
-`set_model()` writes `data/model.txt`; `_load()` seeds it on startup, so the
-dropdown choice survives restarts.
+Model names are in `app/core/config.py` (`CHAT_MODEL`, `VISION_MODEL`,
+`EMBED_MODEL`). The *runtime* selection lives in `app/session/modelstate.py`:
+`set_model()` writes `data/model.txt`; `_load()` seeds it on startup.
 
-Current lineup: **`gemma4:26b`** is the primary brain (`CHAT_MODEL`) and ALSO
-the vision model (`VISION_MODEL`) — it's a multimodal MoE that's smart and
-fast-once-warm. `qwen3:8b` is a fast fully-in-VRAM fallback. `nomic-embed-text`
-is embeddings. Because the vision model is now a general chat model,
-`installed_models()` only hides embedding models from the chat picker (it must
-NOT hide the primary). NB: `gemma4:e4b`'s image input via Ollama is broken;
-only `26b` does vision correctly.
+Current lineup: **`qwen3.5:4b`** is the primary brain (`CHAT_MODEL`) and ALSO
+the vision model (`VISION_MODEL`) — a 4B multimodal model (3.0 GB) chosen
+because it fits 100% in the 8 GB VRAM; the 9B variant spilled ~20% to CPU and
+ran ~30x slower. It does clean tool/function calling. `nomic-embed-text` is
+embeddings. `installed_models()` only hides embedding models from the chat
+picker (must NOT hide the primary). It replaced the gemma4 family, which gave
+blank/truncated replies in the agent tool loop (see the workaround code still
+in `app/agent/loop.py` and `app/agent/runner.py` — now defensive, harmless).
+Agent/chat calls pass `think=False` (qwen3.5 is a reasoning model; thinking on
+was ~13x slower with no quality gain here) and the agent loop streams tokens.
 
 ### Edit the app's own source as the local agent
-`EDIT_ROOTS = [Path.home()]` in config covers this repo (it's under the home
-dir), so the agent can `list_files`/`search_files`/`read_file` the source and
-`propose_edit` changes — which apply only after the user approves them in the
-**Approvals** tab. Original files are backed up to `data/backups/` first.
+`EDIT_ROOTS = [Path.home()]` in `app/core/config.py` covers this repo, so the
+agent can `list_files`/`search_files`/`read_file` the source and `propose_edit`
+changes — applied only after user approves in the **Approvals** tab. Originals
+are backed up to `data/backups/` first.
 
 ### Tune the agent's behavior / personality
-Edit the `SYSTEM_PROMPT` in `app/agent.py` for tool-use instructions, or
-`CODING_AGENT_PROFILE` in `app/coding_profile.py` for working habits. User's
-own always-on rules live in `data/instructions.md` (no restart needed).
+Edit `SYSTEM_PROMPT` in `app/agent/prompt.py` for tool-use instructions, or
+`CODING_AGENT_PROFILE` in `app/content/coding_profile.py` for working habits.
+`READ_ONLY_TOOLS` and `PLAN_MODE_PROMPT` live in `app/agent/modes.py`.
+User's own always-on rules live in `data/instructions.md` (no restart needed).

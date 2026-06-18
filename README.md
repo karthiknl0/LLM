@@ -95,8 +95,7 @@ and the manual steps below do the same thing.
 curl -fsSL https://ollama.com/install.sh | sh
 # Windows: download the installer from https://ollama.com/download
 
-ollama pull gemma4:26b         # primary brain + vision (~17 GB, MoE: fast once warm)
-ollama pull qwen3:8b           # fast fully-in-VRAM fallback (~5 GB)
+ollama pull qwen3.5:4b         # primary brain + vision (~3 GB, fits 100% in VRAM)
 ollama pull nomic-embed-text   # embeddings for document search (~275 MB)
 ```
 
@@ -293,7 +292,7 @@ first. This is the same architecture Claude Code uses: broad read
 access, human approval on every write. Ask things like *"fix the typo
 in C:/Users/you/notes/draft.md"* — the agent queues a diff and tells
 you it's waiting for approval. Allowed folders are `EDIT_ROOTS` in
-`app/config.py` (default: your home directory) — narrow it if you wish.
+`app/core/config.py` (default: your home directory) — narrow it if you wish.
 
 ## Email: read-only Gmail/IMAP for the agent
 
@@ -449,4 +448,4 @@ Two files shape the assistant permanently, no code edits needed:
   any `run_command` containing `rm -rf`); hooks with `command` run a
   shell command for observability or notifications (`session_start`,
   `post_reply`). The file is created with an empty template on first
-  run; the format is documented in `app/hooks.py`.
+  run; the format is documented in `app/services/hooks.py`.

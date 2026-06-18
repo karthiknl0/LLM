@@ -15,9 +15,8 @@ if ! command -v ollama >/dev/null 2>&1; then
     curl -fsSL https://ollama.com/install.sh | sh
 fi
 
-echo "==> Pulling local models (~22 GB total, one time)"
-ollama pull gemma4:26b         # primary brain + vision (MoE, fast once warm)
-ollama pull qwen3:8b           # fast fully-in-VRAM fallback
+echo "==> Pulling local models (~3.5 GB total, one time)"
+ollama pull qwen3.5:4b         # primary brain + vision (fits 100% in VRAM)
 ollama pull nomic-embed-text   # embeddings for document search
 
 echo "==> Creating Python virtual environment"
