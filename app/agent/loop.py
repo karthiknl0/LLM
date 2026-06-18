@@ -20,17 +20,20 @@ from app.skills import maybe_learn
 from app.tools.registry import TOOL_STATUS, all_tools, all_functions
 
 
-def _describe_attachments(files: list[str], question: str) -> list[str]:
+def _describe_attachments(files: list[str], question: str) -> tuple[list[str], list[str]]:
     """Turn attached files into context: images/videos go through the
     vision model; everything else is copied to the workspace so
-    run_python can use it."""
-    notes = []
+    run_python can use it. Returns (notes, vision_analyses) — the raw
+    vision text is kept separately so it can stand in as the answer if the
+    chat model stubs on a long/repetitive analysis."""
+    notes, vision = [], []
     for path in files[:3]:
         name = Path(path).name
         suffix = Path(path).suffix.lower()
         if suffix in IMAGE_EXTENSIONS or suffix in VIDEO_EXTENSIONS:
             analysis = analyze_media(path, question or "Describe this in detail.")
             notes.append(f"[Attached '{name}' — vision model analysis: {analysis}]")
+            vision.append(analysis)
         else:
             try:
                 shutil.copy(path, WORKSPACE_DIR / name)
@@ -40,7 +43,7 @@ def _describe_attachments(files: list[str], question: str) -> list[str]:
                 )
             except Exception as exc:
                 notes.append(f"[Could not save attachment '{name}': {exc}]")
-    return notes
+    return notes, vision
 
 
 def agent_chat(
@@ -103,10 +106,11 @@ def agent_chat(
     messages = [{"role": "system", "content": system}] + past_messages
     steps = []
     user_content = message
+    vision_analyses = []
     if files:
         steps.append("*Looking at the attachment…*")
         yield "\n\n".join(steps)
-        notes = _describe_attachments(files, message)
+        notes, vision_analyses = _describe_attachments(files, message)
         user_content = (message + "\n\n" + "\n".join(notes)).strip()
     messages.append({"role": "user", "content": user_content})
 
@@ -121,54 +125,81 @@ def agent_chat(
         functions = {k: v for k, v in functions.items() if k in READ_ONLY_TOOLS}
     reply = "(no answer)"
     executed_code = []
-    seen_calls = set()
-    for _round in range(MAX_TOOL_ROUNDS + 1):
-        # Stream the call: tool-deciding rounds send no content (just tool
-        # calls), so nothing shows; the final answer round streams its tokens
-        # live so the user watches the reply appear instead of a spinner.
-        prefix = ("\n\n".join(steps) + "\n\n") if steps else ""
-        content = ""
-        tool_calls = []
+    prefix = ("\n\n".join(steps) + "\n\n") if steps else ""
+
+    if vision_analyses:
+        # Media attachment: the vision model already produced the analysis.
+        # Answer directly with a lean prompt and NO tools — the coding-agent
+        # tool loop derails the small model on images (it stubs, or treats
+        # "analyze the image" as a code-inspection task and goes browsing
+        # files). Stream the reply; if the model still stubs, fall back to
+        # the vision analysis itself, which is already a complete answer.
+        direct = [
+            {"role": "system", "content":
+                "You are a helpful assistant. The user attached an image or "
+                "video; a vision model's analysis of it is included in their "
+                "message between brackets. Answer the user's request about "
+                "the attachment using that analysis. Be specific and concise."},
+            {"role": "user", "content": user_content},
+        ]
+        reply = ""
         for part in ollama.chat(
-            model=current_model(), messages=messages, tools=tools,
-            think=False, stream=True,
+            model=current_model(), messages=direct, think=False, stream=True,
         ):
-            m = part["message"]
-            if m.get("content"):
-                content += m["content"]
-                yield prefix + content
-            if m.get("tool_calls"):
-                tool_calls.extend(m["tool_calls"])
-        msg = {"role": "assistant", "content": content, "tool_calls": tool_calls}
-        # Act only on tool calls not already run this turn — a model can loop on
-        # the same call (e.g. list_files) instead of concluding.
-        fresh = [c for c in tool_calls if call_sig(c) not in seen_calls]
-        if not fresh or _round == MAX_TOOL_ROUNDS:
-            reply = content.strip() or conclude(msg, messages)
-            break
+            tok = part["message"].get("content")
+            if tok:
+                reply += tok
+                yield prefix + reply
+        reply = reply.strip() if len(reply.strip()) >= 40 else "\n\n".join(vision_analyses)
+    else:
+        seen_calls = set()
+        for _round in range(MAX_TOOL_ROUNDS + 1):
+            # Stream the call: tool-deciding rounds send no content (just tool
+            # calls), so nothing shows; the final answer round streams its
+            # tokens live so the user watches the reply appear, not a spinner.
+            content = ""
+            tool_calls = []
+            for part in ollama.chat(
+                model=current_model(), messages=messages, tools=tools,
+                think=False, stream=True,
+            ):
+                m = part["message"]
+                if m.get("content"):
+                    content += m["content"]
+                    yield prefix + content
+                if m.get("tool_calls"):
+                    tool_calls.extend(m["tool_calls"])
+            msg = {"role": "assistant", "content": content, "tool_calls": tool_calls}
+            # Act only on tool calls not already run this turn — a model can
+            # loop on the same call (e.g. list_files) instead of concluding.
+            fresh = [c for c in tool_calls if call_sig(c) not in seen_calls]
+            if not fresh or _round == MAX_TOOL_ROUNDS:
+                reply = content.strip() or conclude(msg, messages)
+                break
 
-        messages.append(msg)
-        for call in fresh:
-            seen_calls.add(call_sig(call))
-            name = call["function"]["name"]
-            arguments = dict(call["function"]["arguments"] or {})
-            steps.append(f"*{TOOL_STATUS.get(name, 'Using ' + name.replace('_', ' '))}…*")
-            yield "\n\n".join(steps)
-            block = pre_tool(name, arguments)
-            if block:
-                result = block
-            else:
-                try:
-                    result = functions[name](**arguments)
-                except Exception as exc:
-                    result = f"Tool failed: {exc}"
-            if name == "run_python" and arguments.get("code"):
-                executed_code.append(arguments["code"])
-            messages.append(
-                {"role": "tool", "content": str(result)[:8000], "name": name}
-            )
+            messages.append(msg)
+            for call in fresh:
+                seen_calls.add(call_sig(call))
+                name = call["function"]["name"]
+                arguments = dict(call["function"]["arguments"] or {})
+                steps.append(f"*{TOOL_STATUS.get(name, 'Using ' + name.replace('_', ' '))}…*")
+                yield "\n\n".join(steps)
+                block = pre_tool(name, arguments)
+                if block:
+                    result = block
+                else:
+                    try:
+                        result = functions[name](**arguments)
+                    except Exception as exc:
+                        result = f"Tool failed: {exc}"
+                if name == "run_python" and arguments.get("code"):
+                    executed_code.append(arguments["code"])
+                messages.append(
+                    {"role": "tool", "content": str(result)[:8000], "name": name}
+                )
+            prefix = ("\n\n".join(steps) + "\n\n") if steps else ""
 
-    if deep_answer and reply.strip():
+    if deep_answer and reply.strip() and not vision_analyses:
         steps.append("*Reviewing the draft answer…*")
         yield "\n\n".join(steps)
         messages.append({"role": "assistant", "content": reply})
