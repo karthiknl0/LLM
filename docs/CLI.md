@@ -72,27 +72,35 @@ local-ai serve
 local-ai serve --host 0.0.0.0 --port 7860 --password secret
 ```
 
-By default, the server binds to `127.0.0.1:7860` unless `AIHUB_HOST` or `AIHUB_PORT` are set.
+By default, the UI server binds to `127.0.0.1:7860` unless `AIHUB_HOST` or `AIHUB_PORT` are set.
 
 Use `--browser` to open the browser automatically.
 
+### Start the API server
+
+```bash
+local-ai api
+local-ai api --host 0.0.0.0 --port 11435
+```
+
+By default, the API server binds to `127.0.0.1:11435` unless `AIHUB_API_HOST` or `AIHUB_API_PORT` are set.
+
+The OpenAI-compatible base URL is:
+
+```text
+http://127.0.0.1:11435/v1
+```
+
+See `docs/API.md` for curl and SDK examples.
+
 ## Current limitations
 
-- The CLI currently wraps the existing Ollama-backed runtime.
-- It does not yet expose the roadmap API server.
+- The CLI and API currently wrap the existing Ollama-backed runtime.
+- API auth is not implemented yet; keep the API bound to `127.0.0.1` unless you trust your network.
+- Token usage values in OpenAI-compatible responses are placeholders for now.
 - It does not yet support `LocalModel.yaml` packages.
 - It does not yet abstract multiple runtimes such as llama.cpp, vLLM, or Transformers.
 
 ## Next roadmap step
 
-Add an API server with:
-
-```http
-GET  /health
-GET  /api/tags
-POST /api/chat
-POST /v1/chat/completions
-GET  /v1/models
-```
-
-This will make the project usable by OpenAI-compatible clients while keeping the current Gradio UI.
+Move model operations behind a shared runtime abstraction so the UI, CLI, API, RAG, and agents all use one interface instead of importing `ollama` directly.
