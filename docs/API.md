@@ -39,7 +39,17 @@ AIHUB_API_PORT=11435
 curl http://127.0.0.1:11435/health
 ```
 
-Returns runtime status, active model, installed models, and any Ollama connection error.
+Returns runtime status, active model, installed models, and any runtime connection error.
+
+## Local AI Hub endpoints
+
+### Normalized model metadata
+
+```bash
+curl http://127.0.0.1:11435/api/models
+```
+
+Returns active model, runtime, and normalized metadata for installed models, including inferred capabilities, size, family, and modified time.
 
 ## Ollama-compatible endpoints
 
@@ -84,6 +94,8 @@ Streaming responses use newline-delimited JSON, similar to Ollama.
 ```bash
 curl http://127.0.0.1:11435/v1/models
 ```
+
+The response includes standard OpenAI-style model fields plus a `local_ai_hub` object with runtime, capabilities, size, family, and modified time.
 
 ### Chat completions
 
@@ -141,7 +153,8 @@ print(response.choices[0].message.content)
 
 ## Notes
 
-- The API currently uses Ollama as the runtime.
+- The API currently uses Ollama as the default runtime.
+- Model capabilities are inferred until explicit model packages are added.
 - Token usage values are placeholders for now.
 - API auth is not implemented yet. Keep it bound to `127.0.0.1` unless you trust your network.
-- The next roadmap step is to move model operations behind a runtime abstraction so API, CLI, UI, and RAG all use one interface.
+- The next roadmap step is `LocalModel.yaml` package support.
