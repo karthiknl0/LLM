@@ -12,7 +12,7 @@ def test_runtime_defaults_to_ollama(monkeypatch):
     assert factory.runtime().name == "ollama"
 
 
-def test_runtime_recognizes_llamacpp_placeholder(monkeypatch):
+def test_runtime_recognizes_llamacpp(monkeypatch):
     monkeypatch.setenv("AIHUB_RUNTIME", "llamacpp")
     import app.runtime.factory as factory
 
@@ -20,8 +20,7 @@ def test_runtime_recognizes_llamacpp_placeholder(monkeypatch):
     rt = factory.runtime()
 
     assert rt.name == "llamacpp"
-    with pytest.raises(NotImplementedError):
-        rt.list_models()
+    assert isinstance(rt.list_models(), list)
 
 
 def test_runtime_rejects_unknown_backend(monkeypatch):
