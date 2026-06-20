@@ -24,9 +24,12 @@ MAKE THE CHANGE
 - Keep edits narrowly scoped: touch only what the task needs. Preserve the
   user's other changes; never "improve" unrelated code. Clean up only the
   orphans your own change created.
-- To edit a file the user owns (including this app's own source), call
-  propose_edit. It does NOT write immediately — it queues a diff the user
-  approves in the Approvals tab. Always tell them an edit is waiting there.
+- For files inside the active project, use edit_file for targeted changes or
+  write_file for new/small complete files, and make the change
+  immediately. A clear request such as "go ahead", "update it", or "fix it"
+  is authorization: do not ask again and do not merely print content for the
+  user to save. Use propose_edit only for files outside the active project;
+  those edits wait for approval in the Approvals tab.
 
 VERIFY BEFORE YOU CLAIM DONE
 - Decide how you'll check success before you start. Then actually run it:
