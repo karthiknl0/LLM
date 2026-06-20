@@ -1,7 +1,6 @@
 """Document indexing: chunk, embed, and store documents in ChromaDB."""
 
 import chromadb
-import ollama
 
 from app.core.config import (
     CHUNK_OVERLAP,
@@ -11,6 +10,7 @@ from app.core.config import (
     VECTOR_DB_DIR,
 )
 from app.rag.readers import read_file
+from app.runtime import runtime
 
 _client = chromadb.PersistentClient(path=str(VECTOR_DB_DIR))
 COLLECTION_NAME = "documents"
@@ -34,7 +34,7 @@ def _chunk(text: str) -> list[str]:
 
 
 def embed(texts: list[str]) -> list[list[float]]:
-    return ollama.embed(model=EMBED_MODEL, input=texts)["embeddings"]
+    return runtime().embed(model=EMBED_MODEL, input=texts)
 
 
 def index_documents() -> str:
