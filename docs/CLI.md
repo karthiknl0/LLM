@@ -14,13 +14,22 @@ This registers the `local-ai` console command.
 
 ## Commands
 
-### Show installed chat models
+### Show installed models
 
 ```bash
 local-ai list
+local-ai list --all
 ```
 
-The active model is marked with `*`.
+The active model is marked with `*`. The list shows inferred capabilities and size. By default, embedding-only models are hidden; use `--all` to include them.
+
+### Inspect one model
+
+```bash
+local-ai inspect qwen3.5:4b
+```
+
+Shows normalized metadata such as runtime, capabilities, size, family, and modified time.
 
 ### Show or switch active model
 
@@ -54,7 +63,7 @@ local-ai pull qwen3.5:4b
 local-ai rm qwen3.5:4b
 ```
 
-These commands use Ollama under the hood.
+These commands go through the shared model manager and configured runtime.
 
 ### Health checks
 
@@ -63,7 +72,7 @@ local-ai status
 local-ai doctor
 ```
 
-Both commands run the existing Local AI Hub checks for Ollama, models, GPU, data, email, and MCP configuration.
+Both commands run the existing Local AI Hub checks for runtime, models, GPU, data, email, and MCP configuration.
 
 ### Start the UI server
 
@@ -96,11 +105,12 @@ See `docs/API.md` for curl and SDK examples.
 ## Current limitations
 
 - The CLI and API currently wrap the existing Ollama-backed runtime.
+- Model capabilities are inferred from names and runtime metadata until `LocalModel.yaml` exists.
 - API auth is not implemented yet; keep the API bound to `127.0.0.1` unless you trust your network.
 - Token usage values in OpenAI-compatible responses are placeholders for now.
 - It does not yet support `LocalModel.yaml` packages.
-- It does not yet abstract multiple runtimes such as llama.cpp, vLLM, or Transformers.
+- It does not yet provide alternate runtimes such as llama.cpp, vLLM, or Transformers.
 
 ## Next roadmap step
 
-Move model operations behind a shared runtime abstraction so the UI, CLI, API, RAG, and agents all use one interface instead of importing `ollama` directly.
+Add `LocalModel.yaml` package support for named presets with system prompts, parameters, RAG defaults, and explicit capabilities.
