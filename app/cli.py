@@ -1,8 +1,8 @@
 """Command-line interface for Local AI Hub.
 
 This is the first roadmap step toward an Ollama-style local LLM platform.
-It intentionally reuses the existing Ollama-backed model state, chat, and
-status modules instead of introducing a second runtime path.
+It intentionally reuses the existing model state, chat, runtime, and status
+modules instead of introducing a second backend path.
 """
 
 from __future__ import annotations
@@ -12,8 +12,7 @@ import os
 import sys
 from collections.abc import Iterable
 
-import ollama
-
+from app.runtime import runtime
 from app.session.modelstate import current_model, installed_models, set_model
 
 
@@ -37,11 +36,11 @@ def _chat_once(prompt: str, model: str | None = None, stream: bool = True) -> st
     ]
 
     if not stream:
-        response = ollama.chat(model=selected_model, messages=messages, stream=False)
+        response = runtime().chat(model=selected_model, messages=messages, stream=False)
         return response["message"]["content"]
 
     reply = ""
-    for part in ollama.chat(model=selected_model, messages=messages, stream=True):
+    for part in runtime().chat(model=selected_model, messages=messages, stream=True):
         chunk = part["message"]["content"]
         reply += chunk
         print(chunk, end="", flush=True)
@@ -50,7 +49,7 @@ def _chat_once(prompt: str, model: str | None = None, stream: bool = True) -> st
 
 
 def cmd_list(_args: argparse.Namespace) -> int:
-    """List installed chat-capable Ollama models."""
+    """List installed chat-capable models."""
     active = current_model()
     models = installed_models()
     if not models:
@@ -117,7 +116,7 @@ def cmd_chat(args: argparse.Namespace) -> int:
         history.append({"role": "user", "content": user_message})
         print("ai> ", end="", flush=True)
         reply = ""
-        for part in ollama.chat(model=current_model(), messages=history, stream=True):
+        for part in runtime().chat(model=current_model(), messages=history, stream=True):
             chunk = part["message"]["content"]
             reply += chunk
             print(chunk, end="", flush=True)
@@ -134,9 +133,9 @@ def cmd_status(_args: argparse.Namespace) -> int:
 
 
 def cmd_pull(args: argparse.Namespace) -> int:
-    """Pull a model through Ollama."""
+    """Pull a model through the configured runtime."""
     print(f"Pulling {args.model}...")
-    for event in ollama.pull(args.model, stream=True):
+    for event in runtime().pull_model(args.model, stream=True):
         status = event.get("status")
         digest = event.get("digest")
         completed = event.get("completed")
@@ -152,8 +151,8 @@ def cmd_pull(args: argparse.Namespace) -> int:
 
 
 def cmd_rm(args: argparse.Namespace) -> int:
-    """Remove a model through Ollama."""
-    ollama.delete(args.model)
+    """Remove a model through the configured runtime."""
+    runtime().delete_model(args.model)
     print(f"Removed {args.model}")
     return 0
 
@@ -210,17 +209,17 @@ def build_parser() -> argparse.ArgumentParser:
     chat_parser.add_argument("--model", help="model to use for the chat session")
     chat_parser.set_defaults(func=cmd_chat)
 
-    status_parser = sub.add_parser("status", help="check Ollama, models, GPU, and data")
+    status_parser = sub.add_parser("status", help="check runtime, models, GPU, and data")
     status_parser.set_defaults(func=cmd_status)
 
     doctor_parser = sub.add_parser("doctor", help="alias for status")
     doctor_parser.set_defaults(func=cmd_status)
 
-    pull_parser = sub.add_parser("pull", help="pull a model through Ollama")
+    pull_parser = sub.add_parser("pull", help="pull a model through the configured runtime")
     pull_parser.add_argument("model", help="model name, for example qwen3.5:4b")
     pull_parser.set_defaults(func=cmd_pull)
 
-    rm_parser = sub.add_parser("rm", help="remove a model through Ollama")
+    rm_parser = sub.add_parser("rm", help="remove a model through the configured runtime")
     rm_parser.add_argument("model", help="model name to remove")
     rm_parser.set_defaults(func=cmd_rm)
 
