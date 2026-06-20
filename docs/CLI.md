@@ -31,6 +31,16 @@ local-ai packages
 
 Packages are loaded from `LocalModel.yaml` files in the repo root or under `data/models/`.
 
+### Install a LocalModel package
+
+```bash
+local-ai create -f LocalModel.yaml
+local-ai create -f LocalModel.yaml --activate
+local-ai create -f LocalModel.yaml --force
+```
+
+The command validates the package, installs it at `data/models/<name>/LocalModel.yaml`, and refuses to overwrite an existing package unless `--force` is passed. Use `--activate` to set the installed package as the active model preset.
+
 ### Inspect one model or package
 
 ```bash
@@ -124,4 +134,4 @@ See `docs/API.md` for curl and SDK examples.
 
 ## Next roadmap step
 
-Add tests and developer polish around CLI, API, model packages, and runtime abstraction.
+Continue tests and developer polish around API, runtime abstraction, and package edge cases.
