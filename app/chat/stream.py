@@ -1,4 +1,4 @@
-"""Chat with the local LLM via Ollama, with long-term memory.
+"""Chat with the local LLM through the configured runtime, with long-term memory.
 
 Every turn is also logged to data/chatlogs/ so your conversations can
 later be used to fine-tune your own model (see finetune/README.md).
@@ -7,8 +7,6 @@ later be used to fine-tune your own model (see finetune/README.md).
 import datetime
 import json
 
-import ollama
-
 from app.commands import handle_command
 from app.core.config import CHATLOG_DIR
 from app.session.modelstate import current_model
@@ -16,6 +14,7 @@ from app.chat.history import compact_history
 from app.content.instructions import standing_instructions
 from app.memory import recall, recall_lessons, remember
 from app.personas.manager import DEFAULT_NAME, get_prompt
+from app.runtime import runtime
 
 
 def _log_turn(user_message: str, assistant_reply: str) -> None:
@@ -71,7 +70,7 @@ def stream_chat(message: str, history: list[dict], persona: str = DEFAULT_NAME):
     messages.append({"role": "user", "content": message})
 
     reply = ""
-    for part in ollama.chat(
+    for part in runtime().chat(
         model=current_model(), messages=messages, stream=True, think=False
     ):
         reply += part["message"]["content"]
