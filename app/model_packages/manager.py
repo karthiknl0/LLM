@@ -55,6 +55,13 @@ def _as_list(value: Any) -> list[str]:
     return [str(value)]
 
 
+def _display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def _load_path(path: Path) -> LocalModelPackage:
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     if not isinstance(data, dict):
@@ -78,7 +85,7 @@ def _load_path(path: Path) -> LocalModelPackage:
     return LocalModelPackage(
         name=name,
         base=base,
-        path=str(path.relative_to(ROOT)),
+        path=_display_path(path),
         system=str(data.get("system") or ""),
         parameters=parameters,
         capabilities=_as_list(data.get("capabilities")),
@@ -86,6 +93,11 @@ def _load_path(path: Path) -> LocalModelPackage:
         tools=_as_list(data.get("tools")),
         description=str(data.get("description") or ""),
     )
+
+
+def load_package_file(path: str | Path) -> LocalModelPackage:
+    """Validate and load one LocalModel file by path."""
+    return _load_path(Path(path).expanduser().resolve())
 
 
 def list_packages() -> list[LocalModelPackage]:
