@@ -32,7 +32,12 @@ PERSONAS_DIR = ROOT / "data" / "personas"    # editable specialist prompts
 SKILLS_DIR = ROOT / "data" / "skills"        # functions the agent taught itself
 PLAYBOOKS_DIR = ROOT / "data" / "playbooks"  # authored reusable workflows
 BACKUPS_DIR = ROOT / "data" / "backups"      # originals of approved file edits
-GGUF_MODELS_DIR = ROOT / "data" / "gguf"     # direct GGUF models for future llama.cpp runtime
+GGUF_MODELS_DIR = ROOT / "data" / "gguf"     # direct GGUF models for llama.cpp runtime
+
+# --- llama.cpp runtime settings ---
+LLAMACPP_N_CTX = 4096
+LLAMACPP_N_GPU_LAYERS = -1  # -1 lets llama-cpp-python choose full offload when possible
+LLAMACPP_VERBOSE = False
 
 # Folders the agent may read and propose (approval-gated) edits in.
 EDIT_ROOTS = [Path.home()]
