@@ -2,12 +2,8 @@
 
 from pathlib import Path
 
-# --- Ollama models (must be pulled first: `ollama pull <name>`) ---
-# Primary brain: qwen3.5:4b — a 4B multimodal model (3.0 GB) that fits 100%
-# in the 8 GB GPU (the 9B variant spilled ~20% to CPU and ran ~30x slower).
-# It is the latest generation, serves both chat and vision, and does clean
-# tool/function calling (unlike the gemma4 family it replaced, which produced
-# blank/truncated replies in the agent tool loop).
+# --- Default runtime models (must be installed in the selected backend first) ---
+# The default backend currently uses these model names through its local runtime.
 CHAT_MODEL = "qwen3.5:4b"         # main chat / coding model (primary)
 VISION_MODEL = "qwen3.5:4b"       # same model understands images & video
 EMBED_MODEL = "nomic-embed-text"  # embeddings for document search
@@ -36,6 +32,7 @@ PERSONAS_DIR = ROOT / "data" / "personas"    # editable specialist prompts
 SKILLS_DIR = ROOT / "data" / "skills"        # functions the agent taught itself
 PLAYBOOKS_DIR = ROOT / "data" / "playbooks"  # authored reusable workflows
 BACKUPS_DIR = ROOT / "data" / "backups"      # originals of approved file edits
+GGUF_MODELS_DIR = ROOT / "data" / "gguf"     # direct GGUF models for future llama.cpp runtime
 
 # Folders the agent may read and propose (approval-gated) edits in.
 EDIT_ROOTS = [Path.home()]
@@ -58,6 +55,6 @@ VIDEO_FRAMES_TO_SAMPLE = 8  # frames sent to the vision model per video
 for _dir in (
     DOCUMENTS_DIR, VECTOR_DB_DIR, OUTPUTS_DIR,
     CHATLOG_DIR, TRAINING_DIR, WORKSPACE_DIR, PERSONAS_DIR, SKILLS_DIR,
-    PLAYBOOKS_DIR, BACKUPS_DIR,
+    PLAYBOOKS_DIR, BACKUPS_DIR, GGUF_MODELS_DIR,
 ):
     _dir.mkdir(parents=True, exist_ok=True)
