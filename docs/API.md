@@ -1,6 +1,6 @@
 # Local AI Hub API
 
-The Local AI Hub API is a small FastAPI server that exposes Ollama-compatible and OpenAI-compatible endpoints.
+The Local AI Hub API is a small FastAPI server that exposes local-runtime and OpenAI-compatible endpoints.
 
 Start it with:
 
@@ -39,21 +39,29 @@ AIHUB_API_PORT=11435
 curl http://127.0.0.1:11435/health
 ```
 
-Returns runtime status, active model, installed models, and any runtime connection error.
+Returns runtime status, active model/package, installed models, packages, and any runtime connection error.
 
 ## Local AI Hub endpoints
 
-### Normalized model metadata
+### Normalized model and package metadata
 
 ```bash
 curl http://127.0.0.1:11435/api/models
 ```
 
-Returns active model, runtime, and normalized metadata for installed models, including inferred capabilities, size, family, and modified time.
+Returns active model/package, runtime, normalized metadata for installed models, and LocalModel packages.
 
-## Ollama-compatible endpoints
+### LocalModel packages
 
-### List models
+```bash
+curl http://127.0.0.1:11435/api/packages
+```
+
+Returns package presets from `LocalModel.yaml` files.
+
+## Runtime-compatible endpoints
+
+### List runtime models
 
 ```bash
 curl http://127.0.0.1:11435/api/tags
@@ -73,6 +81,20 @@ curl http://127.0.0.1:11435/api/chat \
   }'
 ```
 
+Use a LocalModel package by passing the package name as `model`:
+
+```bash
+curl http://127.0.0.1:11435/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "saree-assistant",
+    "stream": false,
+    "messages": [
+      {"role": "user", "content": "Write a customer follow-up"}
+    ]
+  }'
+```
+
 ### Generate
 
 ```bash
@@ -85,17 +107,17 @@ curl http://127.0.0.1:11435/api/generate \
   }'
 ```
 
-Streaming responses use newline-delimited JSON, similar to Ollama.
+Streaming responses use newline-delimited JSON.
 
 ## OpenAI-compatible endpoints
 
-### List models
+### List models and packages
 
 ```bash
 curl http://127.0.0.1:11435/v1/models
 ```
 
-The response includes standard OpenAI-style model fields plus a `local_ai_hub` object with runtime, capabilities, size, family, and modified time.
+The response includes standard OpenAI-style model fields plus a `local_ai_hub` object with type, runtime, capabilities, size, family, package base, and path where available.
 
 ### Chat completions
 
@@ -108,6 +130,19 @@ curl http://127.0.0.1:11435/v1/chat/completions \
       {"role": "user", "content": "Write a Python function to parse CSV files"}
     ],
     "temperature": 0.3
+  }'
+```
+
+### Chat completions with a LocalModel package
+
+```bash
+curl http://127.0.0.1:11435/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "saree-assistant",
+    "messages": [
+      {"role": "user", "content": "Create a short product description for a silk saree"}
+    ]
   }'
 ```
 
@@ -153,8 +188,7 @@ print(response.choices[0].message.content)
 
 ## Notes
 
-- The API currently uses Ollama as the default runtime.
-- Model capabilities are inferred until explicit model packages are added.
+- The API currently uses the configured local runtime. Ollama is the default backend implementation.
+- Package names can be used anywhere a chat model name is accepted.
 - Token usage values are placeholders for now.
 - API auth is not implemented yet. Keep it bound to `127.0.0.1` unless you trust your network.
-- The next roadmap step is `LocalModel.yaml` package support.
