@@ -38,6 +38,15 @@ tools:
 
 ## CLI
 
+Install a package file:
+
+```bash
+local-ai create -f LocalModel.yaml
+local-ai create -f LocalModel.yaml --activate
+```
+
+See `docs/LOCALMODEL_CREATE.md` for details.
+
 List packages:
 
 ```bash
