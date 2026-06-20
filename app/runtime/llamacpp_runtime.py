@@ -1,12 +1,14 @@
-"""llama.cpp runtime placeholder.
+"""llama.cpp runtime placeholder with GGUF model discovery.
 
-This file reserves the adapter shape for a future direct GGUF backend. The
-runtime is not enabled by default.
+This runtime can list local `.gguf` files from `data/gguf/`. Inference is not
+implemented yet, so chat/generate/embed still raise clear errors.
 """
 
 from __future__ import annotations
 
 from typing import Any
+
+from app.core.config import GGUF_MODELS_DIR
 
 
 class LlamaCppRuntime:
@@ -16,21 +18,50 @@ class LlamaCppRuntime:
 
     def _not_ready(self):
         raise NotImplementedError(
-            "AIHUB_RUNTIME=llamacpp is not implemented yet. "
-            "Use AIHUB_RUNTIME=ollama for now."
+            "AIHUB_RUNTIME=llamacpp can discover GGUF files but inference "
+            "is not implemented yet. Use AIHUB_RUNTIME=ollama for chat."
         )
 
+    def _gguf_files(self):
+        if not GGUF_MODELS_DIR.exists():
+            return []
+        return sorted(path for path in GGUF_MODELS_DIR.rglob("*.gguf") if path.is_file())
+
     def list_models(self) -> list[dict[str, Any]]:
-        self._not_ready()
+        models: list[dict[str, Any]] = []
+        for path in self._gguf_files():
+            rel = path.relative_to(GGUF_MODELS_DIR)
+            name = str(rel.with_suffix(""))
+            models.append(
+                {
+                    "model": name,
+                    "name": name,
+                    "path": str(rel),
+                    "size": path.stat().st_size,
+                    "modified_at": path.stat().st_mtime,
+                    "details": {
+                        "family": "gguf",
+                        "format": "gguf",
+                    },
+                }
+            )
+        return models
 
     def list_model_names(self, *, include_embeddings: bool = True) -> list[str]:
-        self._not_ready()
+        names = [m["model"] for m in self.list_models()]
+        if not include_embeddings:
+            names = [name for name in names if "embed" not in name.lower()]
+        return sorted(names)
 
     def pull_model(self, name: str, *, stream: bool = True):
-        self._not_ready()
+        raise NotImplementedError(
+            "llama.cpp runtime does not pull models yet. Place .gguf files in data/gguf/."
+        )
 
     def delete_model(self, name: str) -> Any:
-        self._not_ready()
+        raise NotImplementedError(
+            "llama.cpp runtime does not delete models yet. Remove the .gguf file manually."
+        )
 
     def chat(
         self,
