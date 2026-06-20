@@ -2,6 +2,7 @@
 
 from app.model_packages.manager import (
     LocalModelPackage,
+    install_package_file,
     load_package,
     list_packages,
     package_messages,
@@ -11,6 +12,7 @@ from app.model_packages.manager import (
 
 __all__ = [
     "LocalModelPackage",
+    "install_package_file",
     "load_package",
     "list_packages",
     "package_messages",
