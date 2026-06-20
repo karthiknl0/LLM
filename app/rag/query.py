@@ -1,7 +1,6 @@
 """Document retrieval and question answering."""
 
 import chromadb
-import ollama
 
 from app.core.config import (
     RERANK_CANDIDATES,
@@ -11,6 +10,7 @@ from app.core.config import (
 )
 from app.rag.index import COLLECTION_NAME, embed
 from app.session.modelstate import current_model
+from app.runtime import runtime
 
 _client = chromadb.PersistentClient(path=str(VECTOR_DB_DIR))
 
@@ -68,7 +68,7 @@ def ask_documents(question: str) -> str:
             "Click 'Index documents' first."
         )
     context, sources = retrieved
-    response = ollama.chat(
+    response = runtime().chat(
         model=current_model(),
         messages=[
             {
