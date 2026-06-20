@@ -16,6 +16,7 @@ The project is evolving into a local LLM platform with:
 - a shared runtime abstraction
 - a shared model manager
 - `LocalModel.yaml` package presets
+- optional direct GGUF runtime support
 - local RAG, memory, tools, and agent workflows
 
 ## Main capabilities
@@ -34,6 +35,7 @@ The project is evolving into a local LLM platform with:
 - MCP tool plugins
 - QLoRA fine-tuning workflow
 - Local API server
+- Optional GGUF model discovery and direct runtime path
 
 ## Install
 
@@ -143,6 +145,22 @@ local-ai run --model saree-assistant "Write a product description"
 
 See `docs/LOCALMODEL.md`.
 
+## Optional GGUF runtime path
+
+Place `.gguf` files in:
+
+```text
+data/gguf/
+```
+
+List them with:
+
+```bash
+AIHUB_RUNTIME=llamacpp local-ai list
+```
+
+Run them only after installing the optional runtime dependency described in `docs/LLAMACPP.md`.
+
 ## How it learns
 
 Large language models do not update their weights while you chat. This app uses local memory and optional fine-tuning:
@@ -179,6 +197,7 @@ app/
 finetune/                 QLoRA fine-tuning workflow
 data/documents/           files to index
 data/models/              LocalModel packages
+data/gguf/                optional GGUF model files
 data/chatlogs/            chat logs for optional fine-tuning
 outputs/                  generated/exported files
 setup/                    install and update scripts
@@ -194,4 +213,5 @@ tests/                    pytest suite
 - `docs/RUNTIME.md`
 - `docs/MODEL_MANAGER.md`
 - `docs/LOCALMODEL.md`
+- `docs/LLAMACPP.md`
 - `ROADMAP.md`
