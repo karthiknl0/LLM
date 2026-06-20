@@ -7,6 +7,7 @@ vLLM, or Transformers can be added later without rewriting callers.
 
 from app.runtime.base import LLMRuntime
 from app.runtime.factory import runtime
+from app.runtime.llamacpp_runtime import LlamaCppRuntime
 from app.runtime.ollama_runtime import OllamaRuntime
 
-__all__ = ["LLMRuntime", "OllamaRuntime", "runtime"]
+__all__ = ["LLMRuntime", "LlamaCppRuntime", "OllamaRuntime", "runtime"]
