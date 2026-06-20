@@ -169,8 +169,20 @@ def cmd_serve(args: argparse.Namespace) -> int:
     auth = ("me", password) if password else None
 
     session_start()
-    print(f"Starting Local AI Hub at http://{host}:{port}")
+    print(f"Starting Local AI Hub UI at http://{host}:{port}")
     build_app().launch(server_name=host, server_port=port, auth=auth, inbrowser=args.browser)
+    return 0
+
+
+def cmd_api(args: argparse.Namespace) -> int:
+    """Start the OpenAI/Ollama-compatible API server."""
+    import uvicorn
+
+    host = args.host or os.environ.get("AIHUB_API_HOST", "127.0.0.1")
+    port = args.port or int(os.environ.get("AIHUB_API_PORT", "11435"))
+    print(f"Starting Local AI Hub API at http://{host}:{port}")
+    print(f"OpenAI-compatible base URL: http://{host}:{port}/v1")
+    uvicorn.run("app.api.server:app", host=host, port=port, reload=args.reload)
     return 0
 
 
@@ -218,6 +230,12 @@ def build_parser() -> argparse.ArgumentParser:
     serve_parser.add_argument("--password", help="optional UI password; username is 'me'")
     serve_parser.add_argument("--browser", action="store_true", help="open the browser automatically")
     serve_parser.set_defaults(func=cmd_serve)
+
+    api_parser = sub.add_parser("api", help="start the OpenAI/Ollama-compatible API server")
+    api_parser.add_argument("--host", help="host to bind, default: AIHUB_API_HOST or 127.0.0.1")
+    api_parser.add_argument("--port", type=int, help="port to bind, default: AIHUB_API_PORT or 11435")
+    api_parser.add_argument("--reload", action="store_true", help="reload API server on code changes")
+    api_parser.set_defaults(func=cmd_api)
 
     return parser
 
