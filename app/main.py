@@ -8,7 +8,7 @@ import gradio as gr
 
 from app.agent import agent_chat
 from app.chat.stream import stream_chat
-from app.core.config import CHAT_MODEL, DOCUMENTS_DIR, VISION_MODEL
+from app.core.config import CHAT_MODEL, DOCUMENTS_DIR, VISION_MODEL, WORKSPACE_DIR
 from app.media.imagegen import generate_image
 from app.memory import clear_memories, list_memories
 from app.session.modelstate import current_model, installed_models, set_model
@@ -317,10 +317,12 @@ def refresh_models():
     return gr.Dropdown(choices=choices, value=active), f"Active model: `{active}`"
 
 
-def agent_chat_ui(message, history, deep_answer=False, plan_mode=False):
+def agent_chat_ui(
+    message, history, project_folder="", deep_answer=False, plan_mode=False
+):
     """Agent UI wrapper with a status output independent of chat painting."""
     last_reply = None
-    for reply in agent_chat(message, history, deep_answer, plan_mode):
+    for reply in agent_chat(message, history, project_folder, deep_answer, plan_mode):
         last_reply = reply
         yield reply, "AI is thinking…"
     if last_reply is not None:
@@ -371,7 +373,7 @@ def build_app() -> gr.Blocks:
             gr.Markdown(
                 "The selected brain, with tools — it decides by itself "
                 "when to search your documents, research the web, run "
-                "Python (workspace: `data/workspace/`), or generate an "
+                "Python in the project folder you select, or generate an "
                 "image. Attach images, videos, or data files with the 📎 "
                 "button."
             )
@@ -388,6 +390,11 @@ def build_app() -> gr.Blocks:
                 show_progress="minimal",
                 additional_outputs=[agent_status],
                 additional_inputs=[
+                    gr.Textbox(
+                        label="Active project folder",
+                        value=str(WORKSPACE_DIR),
+                        placeholder=r"C:\path\to\your\project",
+                    ),
                     gr.Checkbox(
                         label="Deep answer — the model reviews its own draft "
                         "first (slower, more reliable)",

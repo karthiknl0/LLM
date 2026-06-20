@@ -76,9 +76,9 @@ TOOLS = [
             "description": (
                 "Execute Python code and return its output. Use for math, "
                 "data analysis, and file processing. The working directory "
-                "is the user's workspace folder (data/workspace/) — read "
-                "and write files there, print() results, and save plots "
-                "as .png files. pandas and matplotlib are available."
+                "is the active project folder selected by the user. Read "
+                "and write files there, print() results, and save plots as "
+                ".png files. pandas and matplotlib are available."
             ),
             "parameters": {
                 "type": "object",
@@ -174,10 +174,10 @@ TOOLS = [
         "function": {
             "name": "run_command",
             "description": (
-                "Run a build, test, or shell command inside the workspace "
-                "and get its output and exit code. Set cwd to the repo "
-                "folder (e.g. repos/<name>). Use to build and test code "
-                "you edit: pytest, npm test, npm run build, make, etc."
+                "Run a build, test, or shell command inside the active "
+                "project and get its output and exit code. Set cwd to '.' "
+                "for the project root. Use to build and test code you edit: "
+                "pytest, npm test, npm run build, make, etc."
             ),
             "parameters": {
                 "type": "object",
@@ -185,7 +185,7 @@ TOOLS = [
                     "command": {"type": "string", "description": "Shell command to run"},
                     "cwd": {
                         "type": "string",
-                        "description": "Dir under the workspace, e.g. repos/myrepo",
+                        "description": "Directory inside the project; use '.' for root",
                     },
                 },
                 "required": ["command"],
@@ -210,11 +210,11 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "git_status",
-            "description": "Show the current branch and uncommitted changes of a cloned repository.",
+            "description": "Show branch and changes. Use repo='.' for the active project.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "repo": {"type": "string", "description": "Repository folder name"}
+                    "repo": {"type": "string", "description": "Use '.' for active project"}
                 },
                 "required": ["repo"],
             },
@@ -225,13 +225,13 @@ TOOLS = [
         "function": {
             "name": "git_commit",
             "description": (
-                "Commit all changes in a cloned repository to a branch. "
+                "Commit project changes. Use repo='.' for the active project. "
                 "The branch must be named ai/<short-description>."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "repo": {"type": "string", "description": "Repository folder name"},
+                    "repo": {"type": "string", "description": "Use '.' for active project"},
                     "branch": {"type": "string", "description": "Branch like ai/fix-typo"},
                     "message": {"type": "string", "description": "Commit message"},
                 },
@@ -244,14 +244,14 @@ TOOLS = [
         "function": {
             "name": "git_push",
             "description": (
-                "Push the current ai/ branch of a cloned repository so the "
+                "Push the current ai/ branch of a repository so the "
                 "user can open a pull request. Only use when the user "
                 "explicitly asks to push."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "repo": {"type": "string", "description": "Repository folder name"}
+                    "repo": {"type": "string", "description": "Use '.' for active project"}
                 },
                 "required": ["repo"],
             },

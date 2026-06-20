@@ -19,6 +19,7 @@ import subprocess
 from pathlib import Path
 
 from app.core.config import EDIT_ROOTS, WORKSPACE_DIR
+from app.core.project import active_project_folder
 
 REPOS_DIR = WORKSPACE_DIR / "repos"
 BRANCH_PATTERN = re.compile(r"ai/[A-Za-z0-9._-]+")
@@ -41,6 +42,9 @@ def _git(repo_path, *args, timeout: int = 120) -> tuple[bool, str]:
 
 def _resolve_repo(name: str):
     """Repo directory inside the workspace, or None — no path tricks."""
+    if name in {".", "current", "project"}:
+        path = active_project_folder(WORKSPACE_DIR)
+        return path if (path / ".git").exists() else None
     if not name or not SAFE_NAME.fullmatch(name):
         return None
     path = REPOS_DIR / name

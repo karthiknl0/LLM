@@ -8,7 +8,7 @@ llm:
   api_base: "http://localhost:11434/v1"
   api_key: "ollama"            # Ollama ignores it, but the field is required
   models:
-    - name: "qwen3:14b"
+    - name: "qwen3:8b"
       weight: 1.0
   temperature: 0.7
   max_tokens: 4096

@@ -13,6 +13,7 @@ import sys
 
 from app.core.config import SKILLS_DIR, WORKSPACE_DIR
 
+from app.core.project import active_project_folder
 TIMEOUT_SECONDS = 60
 COMMAND_TIMEOUT_SECONDS = 600   # builds and test suites can be slow
 MAX_OUTPUT_CHARS = 4000
@@ -38,14 +39,15 @@ def run_python(code: str) -> str:
         return "No code provided."
     _sync_skills()
 
+    root = active_project_folder(WORKSPACE_DIR)
     script = WORKSPACE_DIR / "_agent_script.py"
     script.write_text(code, encoding="utf-8")
-    before = {p.name for p in WORKSPACE_DIR.iterdir()}
+    before = {p.name for p in root.iterdir()}
 
     try:
         proc = subprocess.run(
-            [sys.executable, "-I", script.name],
-            cwd=WORKSPACE_DIR,
+            [sys.executable, "-I", str(script)],
+            cwd=root,
             capture_output=True,
             text=True,
             timeout=TIMEOUT_SECONDS,
@@ -61,16 +63,16 @@ def run_python(code: str) -> str:
         output = output[:MAX_OUTPUT_CHARS] + "\n... (output truncated)"
 
     new_files = sorted(
-        {p.name for p in WORKSPACE_DIR.iterdir()} - before - {script.name}
+        {p.name for p in root.iterdir()} - before
     )
     if new_files:
-        output += "\n\nFiles created in data/workspace/: " + ", ".join(new_files)
+        output += f"\n\nFiles created in {root}: " + ", ".join(new_files)
     return output
 
 
 def _resolve_cwd(cwd: str):
-    """A working directory inside the workspace, or None if it escapes."""
-    base = WORKSPACE_DIR.resolve()
+    """A working directory inside the selected project, or None."""
+    base = active_project_folder(WORKSPACE_DIR).resolve()
     target = (base / (cwd or "")).resolve()
     if target != base and base not in target.parents:
         return None
@@ -89,8 +91,8 @@ def run_command(command: str, cwd: str = "") -> str:
     target = _resolve_cwd(cwd)
     if target is None:
         return (
-            f"Working directory '{cwd}' is outside the workspace or does "
-            "not exist. Use a path under data/workspace/ (e.g. repos/<name>)."
+            f"Working directory '{cwd}' is outside the selected project or "
+            "does not exist. Use '.' or a path inside the selected folder."
         )
     try:
         proc = subprocess.run(

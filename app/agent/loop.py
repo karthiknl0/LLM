@@ -12,6 +12,7 @@ from app.chat.stream import _log_turn
 from app.content.notes import read_notes, recent_notes
 from app.content.playbooks import catalog_hint
 from app.core.config import WORKSPACE_DIR
+from app.core.project import active_project_folder, active_project_label, set_project_folder
 from app.media.vision import VIDEO_EXTENSIONS, analyze_media
 from app.memory import recall, recall_lessons, remember
 from app.services.hooks import post_reply, pre_tool
@@ -36,9 +37,10 @@ def _describe_attachments(files: list[str], question: str) -> tuple[list[str], l
             vision.append(analysis)
         else:
             try:
-                shutil.copy(path, WORKSPACE_DIR / name)
+                project_dir = active_project_folder(WORKSPACE_DIR)
+                shutil.copy(path, project_dir / name)
                 notes.append(
-                    f"[Attached file saved to the workspace as '{name}' — "
+                    f"[Attached file saved to the project as '{name}' — "
                     "use run_python to read it.]"
                 )
             except Exception as exc:
@@ -47,7 +49,8 @@ def _describe_attachments(files: list[str], question: str) -> tuple[list[str], l
 
 
 def agent_chat(
-    message, history: list[dict], deep_answer: bool = False, plan_mode: bool = False
+    message, history: list[dict], project_folder: str = "",
+    deep_answer: bool = False, plan_mode: bool = False,
 ):
     """Generator for the Agent tab: yields tool-use progress, then the
     final answer. With deep_answer, the model reviews and corrects its
@@ -59,6 +62,10 @@ def agent_chat(
         message = (message.get("text") or "").strip()
     if not message and not files:
         yield "Say something or attach a file."
+        return
+    ok, project_status = set_project_folder(project_folder)
+    if not ok:
+        yield project_status
         return
     if not files:
         if message.strip().lower() == "/compact":
@@ -84,6 +91,7 @@ def agent_chat(
 
     system = SYSTEM_PROMPT
     memories = recall(message) if message else []
+    system += f"\n\nActive project folder: {active_project_label()}"
     if memories:
         system += "\n\nThings you remember about the user:\n"
         system += "\n".join(f"- {m}" for m in memories)

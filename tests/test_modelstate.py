@@ -21,6 +21,12 @@ def test_blank_name_keeps_current(monkeypatch):
 
 
 def test_installed_models_falls_back_when_ollama_down(monkeypatch):
+    import ollama
+
+    def unavailable():
+        raise ConnectionError("offline")
+
+    monkeypatch.setattr(ollama, "list", unavailable)
     monkeypatch.setattr(modelstate, "_current", "fallback-model")
     names = modelstate.installed_models()  # no ollama server in tests
     assert "fallback-model" in names

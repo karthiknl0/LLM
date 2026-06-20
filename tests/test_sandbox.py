@@ -34,7 +34,7 @@ def test_run_command_reports_failure_exit_code(tmp_path, monkeypatch):
 def test_run_command_cwd_cannot_escape(tmp_path, monkeypatch):
     _isolate(tmp_path, monkeypatch)
     out = sandbox.run_command("echo nope", cwd="../..")
-    assert "outside the workspace" in out
+    assert "outside the selected project" in out
 
 
 def test_run_command_cwd_inside_workspace(tmp_path, monkeypatch):

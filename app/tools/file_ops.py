@@ -15,6 +15,7 @@ from pathlib import Path
 
 from app.core.config import BACKUPS_DIR, EDIT_ROOTS
 
+from app.core.project import is_inside_active_project
 MAX_READ_CHARS = 8000
 MAX_LIST_ENTRIES = 200
 MAX_SEARCH_RESULTS = 80
@@ -27,6 +28,8 @@ _pending: dict[str, dict] = {}
 
 
 def _allowed(path: Path) -> bool:
+    if is_inside_active_project(path):
+        return True
     try:
         resolved = path.resolve()
     except OSError:
