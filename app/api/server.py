@@ -1,6 +1,6 @@
 """FastAPI server for Local AI Hub.
 
-Provides a small local API surface that is compatible with common Ollama and
+Provides a small local API surface that is compatible with common local and
 OpenAI-style clients while reusing the configured model runtime.
 """
 
@@ -15,6 +15,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from app.model_packages import (
+    list_packages,
+    package_messages,
+    package_options,
+    resolve_model_or_package,
+)
 from app.models import list_models
 from app.runtime import runtime
 from app.session.modelstate import current_model, installed_models
@@ -32,14 +38,14 @@ class ChatMessage(BaseModel):
     content: str
 
 
-class OllamaChatRequest(BaseModel):
+class LocalChatRequest(BaseModel):
     model: str | None = None
     messages: list[ChatMessage]
     stream: bool = True
     options: dict[str, Any] | None = None
 
 
-class OllamaGenerateRequest(BaseModel):
+class LocalGenerateRequest(BaseModel):
     model: str | None = None
     prompt: str
     system: str | None = None
@@ -58,6 +64,12 @@ class OpenAIChatRequest(BaseModel):
 
 def _model_or_default(name: str | None) -> str:
     return (name or current_model()).strip()
+
+
+def _resolve_request_model(name: str | None):
+    requested = _model_or_default(name)
+    runtime_model, package = resolve_model_or_package(requested)
+    return runtime_model or requested, package, requested
 
 
 def _chat_options_from_request(request: OpenAIChatRequest) -> dict[str, Any]:
@@ -92,13 +104,14 @@ def health() -> dict[str, Any]:
         "runtime": rt.name if rt else None,
         "active_model": current_model(),
         "models": models,
+        "packages": [p.name for p in list_packages()],
         "error": error,
     }
 
 
 @app.get("/api/tags")
 def api_tags() -> dict[str, Any]:
-    """Ollama-compatible model list endpoint."""
+    """Runtime-compatible model list endpoint."""
     try:
         rt = runtime()
         if hasattr(rt, "list_raw"):
@@ -110,44 +123,68 @@ def api_tags() -> dict[str, Any]:
 
 @app.get("/api/models")
 def api_models() -> dict[str, Any]:
-    """Local AI Hub normalized model metadata endpoint."""
+    """Local AI Hub normalized model and package metadata endpoint."""
     return {
         "runtime": runtime().name,
         "active_model": current_model(),
         "models": [m.to_dict() for m in list_models(include_embeddings=True)],
+        "packages": [p.to_dict() for p in list_packages()],
     }
+
+
+@app.get("/api/packages")
+def api_packages() -> dict[str, Any]:
+    """List LocalModel package presets."""
+    return {"packages": [p.to_dict() for p in list_packages()]}
 
 
 @app.get("/v1/models")
 def v1_models() -> dict[str, Any]:
     """OpenAI-compatible model list endpoint with local metadata extras."""
     now = int(time.time())
-    return {
-        "object": "list",
-        "data": [
-            {
-                "id": model.name,
-                "object": "model",
-                "created": now,
-                "owned_by": "local-ai-hub",
-                "local_ai_hub": {
-                    "runtime": model.runtime,
-                    "capabilities": model.capabilities,
-                    "size": model.size,
-                    "family": model.family,
-                    "modified_at": model.modified_at,
-                },
-            }
-            for model in list_models(include_embeddings=False)
-        ],
-    }
+    runtime_models = [
+        {
+            "id": model.name,
+            "object": "model",
+            "created": now,
+            "owned_by": "local-ai-hub",
+            "local_ai_hub": {
+                "type": "runtime_model",
+                "runtime": model.runtime,
+                "capabilities": model.capabilities,
+                "size": model.size,
+                "family": model.family,
+                "modified_at": model.modified_at,
+            },
+        }
+        for model in list_models(include_embeddings=False)
+    ]
+    packages = [
+        {
+            "id": package.name,
+            "object": "model",
+            "created": now,
+            "owned_by": "local-ai-hub",
+            "local_ai_hub": {
+                "type": "package",
+                "runtime": runtime().name,
+                "base": package.base,
+                "capabilities": package.capabilities,
+                "path": package.path,
+                "description": package.description,
+            },
+        }
+        for package in list_packages()
+    ]
+    return {"object": "list", "data": runtime_models + packages}
 
 
 @app.post("/api/chat")
-def api_chat(request: OllamaChatRequest):
-    """Ollama-compatible chat endpoint."""
-    model = _model_or_default(request.model)
-    messages = [m.model_dump() for m in request.messages]
+def api_chat(request: LocalChatRequest):
+    """Local runtime-compatible chat endpoint."""
+    model, package, _requested = _resolve_request_model(request.model)
+    messages = package_messages(package, [m.model_dump() for m in request.messages])
+    options = package_options(package, request.options)
 
     if not request.stream:
         try:
@@ -155,7 +192,7 @@ def api_chat(request: OllamaChatRequest):
                 model=model,
                 messages=messages,
                 stream=False,
-                options=request.options,
+                options=options,
             )
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -166,7 +203,7 @@ def api_chat(request: OllamaChatRequest):
                 model=model,
                 messages=messages,
                 stream=True,
-                options=request.options,
+                options=options,
             ):
                 yield json.dumps(part, ensure_ascii=False) + "\n"
         except Exception as exc:
@@ -176,17 +213,19 @@ def api_chat(request: OllamaChatRequest):
 
 
 @app.post("/api/generate")
-def api_generate(request: OllamaGenerateRequest):
-    """Ollama-compatible text generation endpoint."""
-    model = _model_or_default(request.model)
+def api_generate(request: LocalGenerateRequest):
+    """Local runtime-compatible text generation endpoint."""
+    model, package, _requested = _resolve_request_model(request.model)
+    options = package_options(package, request.options)
+    system = request.system or (package.system if package else None)
     kwargs: dict[str, Any] = {
         "model": model,
         "prompt": request.prompt,
         "stream": request.stream,
-        "options": request.options,
+        "options": options,
     }
-    if request.system:
-        kwargs["system"] = request.system
+    if system:
+        kwargs["system"] = system
 
     if not request.stream:
         try:
@@ -207,9 +246,9 @@ def api_generate(request: OllamaGenerateRequest):
 @app.post("/v1/chat/completions")
 def v1_chat_completions(request: OpenAIChatRequest):
     """OpenAI-compatible chat completion endpoint."""
-    model = _model_or_default(request.model)
-    messages = [m.model_dump() for m in request.messages]
-    options = _chat_options_from_request(request) or None
+    model, package, requested = _resolve_request_model(request.model)
+    messages = package_messages(package, [m.model_dump() for m in request.messages])
+    options = package_options(package, _chat_options_from_request(request))
 
     if request.stream:
         def events() -> Iterable[str]:
@@ -228,7 +267,7 @@ def v1_chat_completions(request: OpenAIChatRequest):
                             "id": f"chatcmpl-{int(time.time() * 1000)}",
                             "object": "chat.completion.chunk",
                             "created": int(time.time()),
-                            "model": model,
+                            "model": requested,
                             "choices": [
                                 {
                                     "index": 0,
@@ -243,7 +282,7 @@ def v1_chat_completions(request: OpenAIChatRequest):
                         "id": f"chatcmpl-{int(time.time() * 1000)}",
                         "object": "chat.completion.chunk",
                         "created": int(time.time()),
-                        "model": model,
+                        "model": requested,
                         "choices": [
                             {
                                 "index": 0,
@@ -275,7 +314,7 @@ def v1_chat_completions(request: OpenAIChatRequest):
         "id": f"chatcmpl-{int(time.time() * 1000)}",
         "object": "chat.completion",
         "created": int(time.time()),
-        "model": model,
+        "model": requested,
         "choices": [
             {
                 "index": 0,
