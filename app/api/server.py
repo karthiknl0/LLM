@@ -1,7 +1,7 @@
 """FastAPI server for Local AI Hub.
 
 Provides a small local API surface that is compatible with common Ollama and
-OpenAI-style clients while reusing the current Ollama-backed model runtime.
+OpenAI-style clients while reusing the configured model runtime.
 """
 
 from __future__ import annotations
@@ -11,18 +11,18 @@ import time
 from collections.abc import Iterable
 from typing import Any
 
-import ollama
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from app.runtime import runtime
 from app.session.modelstate import current_model, installed_models
 
 
 app = FastAPI(
     title="Local AI Hub API",
     version="0.1.0",
-    description="Local Ollama-backed API for chat, generation, and model listing.",
+    description="Local runtime-backed API for chat, generation, and model listing.",
 )
 
 
@@ -77,16 +77,18 @@ def _sse(data: dict[str, Any]) -> str:
 @app.get("/health")
 def health() -> dict[str, Any]:
     try:
+        rt = runtime()
         models = installed_models()
-        ollama_ok = True
+        runtime_ok = True
         error = None
     except Exception as exc:
+        rt = None
         models = []
-        ollama_ok = False
+        runtime_ok = False
         error = str(exc)
     return {
-        "status": "ok" if ollama_ok else "degraded",
-        "runtime": "ollama",
+        "status": "ok" if runtime_ok else "degraded",
+        "runtime": rt.name if rt else None,
         "active_model": current_model(),
         "models": models,
         "error": error,
@@ -97,9 +99,12 @@ def health() -> dict[str, Any]:
 def api_tags() -> dict[str, Any]:
     """Ollama-compatible model list endpoint."""
     try:
-        return ollama.list()
+        rt = runtime()
+        if hasattr(rt, "list_raw"):
+            return rt.list_raw()
+        return {"models": rt.list_models()}
     except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"Ollama unavailable: {exc}") from exc
+        raise HTTPException(status_code=503, detail=f"Runtime unavailable: {exc}") from exc
 
 
 @app.get("/v1/models")
@@ -128,7 +133,7 @@ def api_chat(request: OllamaChatRequest):
 
     if not request.stream:
         try:
-            return ollama.chat(
+            return runtime().chat(
                 model=model,
                 messages=messages,
                 stream=False,
@@ -139,7 +144,7 @@ def api_chat(request: OllamaChatRequest):
 
     def events() -> Iterable[str]:
         try:
-            for part in ollama.chat(
+            for part in runtime().chat(
                 model=model,
                 messages=messages,
                 stream=True,
@@ -167,13 +172,13 @@ def api_generate(request: OllamaGenerateRequest):
 
     if not request.stream:
         try:
-            return ollama.generate(**kwargs)
+            return runtime().generate(**kwargs)
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     def events() -> Iterable[str]:
         try:
-            for part in ollama.generate(**kwargs):
+            for part in runtime().generate(**kwargs):
                 yield json.dumps(part, ensure_ascii=False) + "\n"
         except Exception as exc:
             yield json.dumps({"error": str(exc)}, ensure_ascii=False) + "\n"
@@ -191,7 +196,7 @@ def v1_chat_completions(request: OpenAIChatRequest):
     if request.stream:
         def events() -> Iterable[str]:
             try:
-                for part in ollama.chat(
+                for part in runtime().chat(
                     model=model,
                     messages=messages,
                     stream=True,
@@ -238,7 +243,7 @@ def v1_chat_completions(request: OpenAIChatRequest):
         return StreamingResponse(events(), media_type="text/event-stream")
 
     try:
-        response = ollama.chat(
+        response = runtime().chat(
             model=model,
             messages=messages,
             stream=False,
