@@ -18,7 +18,7 @@ authors = [
 #   pip install -e .
 
 [project.scripts]
-local-ai = "app.cli:main"
+local-ai = "app.cli_entry:main"
 
 [tool.setuptools.packages.find]
 include = ["app*", "finetune*"]
