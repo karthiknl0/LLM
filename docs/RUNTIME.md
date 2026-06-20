@@ -1,12 +1,12 @@
 # Runtime Abstraction
 
-Local AI Hub now routes core model operations through `app.runtime` instead of importing a backend client directly in every feature.
+Local AI Hub routes core model operations through `app.runtime` instead of importing a backend client directly in every feature.
 
-This prepares the project for future backends while keeping Ollama as the default today.
+This prepares the project for multiple local backends while keeping the default backend stable.
 
-## Current backend
+## Current production backend
 
-The implemented backend is `OllamaRuntime`.
+The production backend is `OllamaRuntime`.
 
 It provides these operations:
 
@@ -19,6 +19,27 @@ chat(model=..., messages=..., stream=False, options=None, **kwargs)
 generate(model=..., prompt=..., stream=False, options=None, **kwargs)
 embed(model=..., input=[...])
 ```
+
+## Reserved llama.cpp backend
+
+`LlamaCppRuntime` is present as a reserved future backend.
+
+Current behavior:
+
+- Discovers `.gguf` files in `data/gguf/`.
+- Lists discovered files through the model manager and CLI.
+- Does not run inference yet.
+- Raises a clear `NotImplementedError` for chat, generate, embed, pull, and delete.
+
+Try discovery:
+
+```bash
+mkdir -p data/gguf
+# copy a .gguf model file into data/gguf/
+AIHUB_RUNTIME=llamacpp local-ai list
+```
+
+Do not use `AIHUB_RUNTIME=llamacpp` for chat yet.
 
 ## Usage
 
@@ -39,17 +60,16 @@ vectors = runtime().embed(
 
 ## Environment variable
 
-`AIHUB_RUNTIME` is reserved for backend selection:
-
 ```bash
 AIHUB_RUNTIME=ollama
+AIHUB_RUNTIME=llamacpp
 ```
 
-At the moment, only `ollama` is supported.
+`ollama` is the working default. `llamacpp` is discovery-only for now.
 
 ## Migrated callers
 
-These core surfaces now use the runtime layer:
+These core surfaces use the runtime layer:
 
 - `app/chat/stream.py`
 - `app/rag/index.py`
@@ -61,4 +81,4 @@ These core surfaces now use the runtime layer:
 
 ## Next roadmap step
 
-Add a model manager module on top of the runtime layer. It should centralize installed model listing, model capabilities, default model checks, pull/remove operations, and local metadata storage.
+Implement non-streaming generation in `LlamaCppRuntime`, guarded by tests and optional dependencies so CI remains lightweight.
