@@ -15,6 +15,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from app.models import list_models
 from app.runtime import runtime
 from app.session.modelstate import current_model, installed_models
 
@@ -107,20 +108,37 @@ def api_tags() -> dict[str, Any]:
         raise HTTPException(status_code=503, detail=f"Runtime unavailable: {exc}") from exc
 
 
+@app.get("/api/models")
+def api_models() -> dict[str, Any]:
+    """Local AI Hub normalized model metadata endpoint."""
+    return {
+        "runtime": runtime().name,
+        "active_model": current_model(),
+        "models": [m.to_dict() for m in list_models(include_embeddings=True)],
+    }
+
+
 @app.get("/v1/models")
 def v1_models() -> dict[str, Any]:
-    """OpenAI-compatible model list endpoint."""
+    """OpenAI-compatible model list endpoint with local metadata extras."""
     now = int(time.time())
     return {
         "object": "list",
         "data": [
             {
-                "id": model,
+                "id": model.name,
                 "object": "model",
                 "created": now,
                 "owned_by": "local-ai-hub",
+                "local_ai_hub": {
+                    "runtime": model.runtime,
+                    "capabilities": model.capabilities,
+                    "size": model.size,
+                    "family": model.family,
+                    "modified_at": model.modified_at,
+                },
             }
-            for model in installed_models()
+            for model in list_models(include_embeddings=False)
         ],
     }
 
