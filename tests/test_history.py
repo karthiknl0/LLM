@@ -1,4 +1,4 @@
-from app.history import COMPACT_MARKER, _clean, compact_history
+from app.chat.history import COMPACT_MARKER, _clean, compact_history
 
 
 def _msg(role, content):

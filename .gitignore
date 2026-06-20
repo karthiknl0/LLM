@@ -17,6 +17,7 @@ data/loops/
 data/hooks.json
 data/instructions.md
 data/mcp.json
+data/model.txt
 outputs/*
 !data/documents/.gitkeep
 !outputs/.gitkeep

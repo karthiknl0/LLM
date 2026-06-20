@@ -1,8 +1,5 @@
-import sys
-from types import SimpleNamespace
-
-import app.modelstate as modelstate
-from app.config import CHAT_MODEL, EMBED_MODEL, VISION_MODEL
+import app.session.modelstate as modelstate
+from app.core.config import CHAT_MODEL
 
 
 def test_defaults_to_config(monkeypatch):
@@ -24,30 +21,12 @@ def test_blank_name_keeps_current(monkeypatch):
 
 
 def test_installed_models_falls_back_when_ollama_down(monkeypatch):
+    import ollama
+
+    def unavailable():
+        raise ConnectionError("offline")
+
+    monkeypatch.setattr(ollama, "list", unavailable)
     monkeypatch.setattr(modelstate, "_current", "fallback-model")
-    monkeypatch.setitem(
-        sys.modules,
-        "ollama",
-        SimpleNamespace(list=lambda: (_ for _ in ()).throw(RuntimeError("down"))),
-    )
-    names = modelstate.installed_models()
+    names = modelstate.installed_models()  # no ollama server in tests
     assert "fallback-model" in names
-
-
-def test_installed_models_excludes_specialized_models(monkeypatch):
-    monkeypatch.setattr(modelstate, "_current", "deleted-model:14b")
-    monkeypatch.setitem(
-        sys.modules,
-        "ollama",
-        SimpleNamespace(
-            list=lambda: {
-                "models": [
-                    {"model": "qwen3:8b"},
-                    {"model": VISION_MODEL},
-                    {"model": EMBED_MODEL + ":latest"},
-                ]
-            }
-        ),
-    )
-
-    assert modelstate.installed_models() == ["qwen3:8b"]

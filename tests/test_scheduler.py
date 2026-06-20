@@ -1,6 +1,6 @@
 import time
 
-import app.scheduler as scheduler
+import app.services.scheduler as scheduler
 
 
 def _isolate(tmp_path, monkeypatch):

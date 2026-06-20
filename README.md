@@ -9,7 +9,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 
 | Capability | How | Status on 16 GB GPU |
 |---|---|---|
-| Chat & coding help | Qwen 3 8B via Ollama (switchable in the UI) | Fast, fully on GPU |
+| Chat & coding help | Qwen 3 14B via Ollama (switchable in the UI) | Fast, fully on GPU |
 | Model dropdown | Switch the brain everywhere — also /model <name> | Instant |
 | Self-consistency voting | /vote samples N answers, returns the majority | Slower, accurate |
 | Agent mode (auto tool use) | Native tool calling: docs, web, Python, images | Fast |
@@ -24,6 +24,7 @@ Built for: **NVIDIA GPU 16 GB VRAM · 32 GB RAM · Intel Core i5**
 | Edit your own files (approval-gated) | Proposes diffs; you approve in the Approvals tab; originals backed up | Supervised |
 | Edit & push code to GitHub | Guarded git tools — ai/* branches only, you merge via PR | Supervised |
 | Verify web pages in a browser | Headless Chromium + vision model + console errors | Fast |
+| Read your email (Gmail/IMAP) | Read-only agent tools — search_email, read_email | Optional setup |
 | Plug-in tools via MCP | Any Model Context Protocol server (data/mcp.json) | Depends on server |
 | Task scratchpad | Agent takes notes that survive context compaction | Automatic |
 | Playbook library | Authored workflows loaded on demand (data/playbooks/) | Automatic |
@@ -64,7 +65,7 @@ curl -fsSL https://raw.githubusercontent.com/karthiknl0/LLM/main/setup/bootstrap
 ```
 
 Either clones the repo to `~/local-ai-hub` (or `%USERPROFILE%\local-ai-hub`)
-and runs the full setup — Ollama, the three models (~12 GB download),
+and runs the full setup — Ollama, the three models (~15 GB download),
 Python environment, and all dependencies. When it finishes:
 
 ```powershell
@@ -94,8 +95,7 @@ and the manual steps below do the same thing.
 curl -fsSL https://ollama.com/install.sh | sh
 # Windows: download the installer from https://ollama.com/download
 
-ollama pull qwen3:8b           # chat + coding brain
-ollama pull qwen2.5vl:7b       # vision: images & video frames (~6 GB)
+ollama pull qwen3.5:4b         # primary brain + vision (~3 GB, fits 100% in VRAM)
 ollama pull nomic-embed-text   # embeddings for document search (~275 MB)
 ```
 
@@ -244,7 +244,7 @@ your style and becomes `my-ai` in Ollama. Full guide: `finetune/README.md`.
   long tasks the agent also keeps a scratchpad (`data/workspace/NOTES.md`)
   whose recent notes are always in view, so working state survives
   compaction.
-- Qwen 3 8B uses less VRAM than the larger optional models and is fast.
+- Qwen 3 14B (4-bit) uses ~10 GB VRAM — fits fully on your GPU and is fast.
 - Only one heavy model runs on the GPU at a time. The app loads image/video
   generators on demand and frees them afterwards; Ollama similarly swaps
   models. First request after switching tasks is slower — that's normal.
@@ -262,7 +262,7 @@ changes needed, it just talks to Ollama:
 ```bash
 pip install aider-chat
 cd your-project
-aider --model ollama/qwen3:8b
+aider --model ollama/qwen3:14b
 ```
 
 Or install the **Continue** extension in VS Code and point it at Ollama
@@ -292,7 +292,37 @@ first. This is the same architecture Claude Code uses: broad read
 access, human approval on every write. Ask things like *"fix the typo
 in C:/Users/you/notes/draft.md"* — the agent queues a diff and tells
 you it's waiting for approval. Allowed folders are `EDIT_ROOTS` in
-`app/config.py` (default: your home directory) — narrow it if you wish.
+`app/core/config.py` (default: your home directory) — narrow it if you wish.
+
+## Email: read-only Gmail/IMAP for the agent
+
+The agent can search and read your inbox — **read-only by design**: it
+cannot send, delete, or even mark messages as read. Setup for Gmail
+(~5 minutes, no Google Cloud project needed):
+
+1. Enable **2-Step Verification** on your Google account.
+2. Create an **App Password** at myaccount.google.com/apppasswords
+3. Set the env vars before starting the hub:
+
+```powershell
+# Windows
+$env:AIHUB_IMAP_USER = "you@gmail.com"
+$env:AIHUB_IMAP_PASSWORD = "abcd efgh ijkl mnop"
+powershell -ExecutionPolicy Bypass -File setup\start.ps1
+```
+
+```bash
+# Linux
+AIHUB_IMAP_USER=you@gmail.com AIHUB_IMAP_PASSWORD=... bash setup/start.sh
+```
+
+Then ask the agent things like *"any emails about my order this week?"*
+or *"summarize my latest email from the bank"*. Works with any IMAP
+provider via `AIHUB_IMAP_HOST`. **Outlook.com/Microsoft 365** no longer
+allows IMAP passwords — connect it through a Microsoft 365 MCP server
+instead (e.g. `@softeria/ms-365-mcp-server` in `data/mcp.json`, which
+signs in with a device code). The Status tab shows whether email is
+configured.
 
 ## MCP: plug-in tools for the agent
 
@@ -322,7 +352,7 @@ Starter examples (filesystem, SQLite) are in `setup/mcp.example.json`;
 browse [awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
 for the full catalog. Two rules of thumb: prefer local-first servers
 that need no API keys, and keep the count low — every connected tool
-definition eats context, and an 8B model chooses tools best from a
+definition eats context, and a 14B model chooses tools best from a
 short, distinct list. One or two servers that match your real workflow
 beat ten installed "just in case".
 
@@ -385,6 +415,7 @@ app/
   browser.py    headless-browser verification of web pages
   sandbox.py    Python execution for the agent (data/workspace/)
   skills.py     self-built skill library (data/skills/)
+  mail.py       read-only email over IMAP (search_email, read_email)
   screen.py     screen capture + vision analysis
   status.py     system health checks (Status tab)
   vision.py     image & video understanding
@@ -417,4 +448,4 @@ Two files shape the assistant permanently, no code edits needed:
   any `run_command` containing `rm -rf`); hooks with `command` run a
   shell command for observability or notifications (`session_start`,
   `post_reply`). The file is created with an empty template on first
-  run; the format is documented in `app/hooks.py`.
+  run; the format is documented in `app/services/hooks.py`.

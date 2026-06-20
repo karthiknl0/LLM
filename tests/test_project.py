@@ -1,6 +1,8 @@
 import subprocess
 
-from app import gittools, project, sandbox
+from app.core import project
+from app.tools import code_exec as sandbox
+from app.tools import git_ops as gittools
 
 
 def teardown_function():

@@ -7,25 +7,25 @@ Then open: http://localhost:7860
 import gradio as gr
 
 from app.agent import agent_chat
-from app.chat import stream_chat
-from app.config import CHAT_MODEL, DOCUMENTS_DIR, VISION_MODEL, WORKSPACE_DIR
-from app.imagegen import generate_image
+from app.chat.stream import stream_chat
+from app.core.config import CHAT_MODEL, DOCUMENTS_DIR, VISION_MODEL, WORKSPACE_DIR
+from app.media.imagegen import generate_image
 from app.memory import clear_memories, list_memories
-from app.modelstate import current_model, installed_models, set_model
+from app.session.modelstate import current_model, installed_models, set_model
 from app.personas import DEFAULT_NAME, list_personas
 from app.rag import ask_documents, index_documents
 from app.repo import add_repo
-from app.research import deep_research, research
-from app.screen import capture_and_analyze
+from app.services.research import deep_research, research
+from app.tools.screen import capture_and_analyze
 from app.skills import list_skills
-from app.evals import list_sets, run_eval
-from app.fileedit import approve, list_pending, reject, show_diff
-from app.promptlab import improve_prompt
-from app.status import run_checks
-from app.team import team_run
-from app.videogen import generate_video
-from app.vision import analyze_media
-from app.voice import transcribe_file, voice_chat
+from app.session.evals import list_sets, run_eval
+from app.tools.file_ops import approve, list_pending, reject, show_diff
+from app.session.promptlab import improve_prompt
+from app.session.status import run_checks
+from app.subagents import team_run
+from app.media.videogen import generate_video
+from app.media.vision import analyze_media
+from app.media.voice import transcribe_file, voice_chat
 
 
 APP_CSS = """
@@ -54,7 +54,8 @@ body,
 }
 
 .gradio-container {
-    max-width: none !important;
+    max-width: 1180px !important;
+    margin: 0 auto !important;
     padding: 24px 28px 18px !important;
 }
 
@@ -137,7 +138,7 @@ body,
 .tabs > .tab-nav {
     border-bottom: 1px solid var(--aihub-border) !important;
     gap: 4px;
-    overflow-x: auto;
+    flex-wrap: wrap;
 }
 
 .tab-nav button {
@@ -257,7 +258,7 @@ button:not(.selected) {
 }
 
 .aihub-chat {
-    min-height: 390px !important;
+    min-height: 440px !important;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 180px),
         #111418 !important;
@@ -316,7 +317,9 @@ def refresh_models():
     return gr.Dropdown(choices=choices, value=active), f"Active model: `{active}`"
 
 
-def agent_chat_ui(message, history, project_folder="", deep_answer=False, plan_mode=False):
+def agent_chat_ui(
+    message, history, project_folder="", deep_answer=False, plan_mode=False
+):
     """Agent UI wrapper with a status output independent of chat painting."""
     last_reply = None
     for reply in agent_chat(message, history, project_folder, deep_answer, plan_mode):
@@ -369,9 +372,9 @@ def build_app() -> gr.Blocks:
         with gr.Tab("Agent"):
             gr.Markdown(
                 "The selected brain, with tools — it decides by itself "
-                "when to search your documents, research the web, work "
-                "inside the active project folder, or generate an "
-                "image. Attach images, videos, or data files with the "
+                "when to search your documents, research the web, run "
+                "Python in the project folder you select, or generate an "
+                "image. Attach images, videos, or data files with the 📎 "
                 "button."
             )
             agent_chatbot = gr.Chatbot(
@@ -384,13 +387,13 @@ def build_app() -> gr.Blocks:
                 type="messages",
                 chatbot=agent_chatbot,
                 multimodal=True,
-                show_progress="full",
+                show_progress="minimal",
                 additional_outputs=[agent_status],
                 additional_inputs=[
                     gr.Textbox(
                         label="Active project folder",
                         value=str(WORKSPACE_DIR),
-                        placeholder="C:\\Users\\karth\\path\\to\\your\\project",
+                        placeholder=r"C:\path\to\your\project",
                     ),
                     gr.Checkbox(
                         label="Deep answer — the model reviews its own draft "
@@ -723,7 +726,7 @@ def build_app() -> gr.Blocks:
 if __name__ == "__main__":
     import os
 
-    from app.hooks import session_start
+    from app.services.hooks import session_start
 
     session_start()
 
@@ -733,4 +736,6 @@ if __name__ == "__main__":
     port = int(os.environ.get("AIHUB_PORT", "7860"))
     password = os.environ.get("AIHUB_PASSWORD")
     auth = ("me", password) if password else None
-    build_app().launch(server_name=host, server_port=port, auth=auth)
+    build_app().launch(
+        server_name=host, server_port=port, auth=auth, inbrowser=True
+    )

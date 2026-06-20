@@ -10,10 +10,9 @@ if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) {
                 [Environment]::GetEnvironmentVariable("Path", "User")
 }
 
-Write-Host "==> Pulling local models (~12 GB total, one time)"
-ollama pull qwen3:8b
-ollama pull qwen2.5vl:7b
-ollama pull nomic-embed-text
+Write-Host "==> Pulling local models (~3.5 GB total, one time)"
+ollama pull qwen3.5:4b         # primary brain + vision (fits 100% in VRAM)
+ollama pull nomic-embed-text   # embeddings for document search
 
 Write-Host "==> Creating Python virtual environment"
 python -m venv .venv
@@ -28,6 +27,10 @@ Write-Host "==> Installing Python dependencies"
 Write-Host "==> Installing headless Chromium for browser verification"
 try { & .venv\Scripts\python.exe -m playwright install chromium }
 catch { Write-Host "    (skipped - browser verification disabled)" }
+
+Write-Host "==> Creating Desktop shortcut"
+try { powershell -ExecutionPolicy Bypass -File setup\make_shortcut.ps1 }
+catch { Write-Host "    (shortcut skipped - run setup\make_shortcut.ps1 manually)" }
 
 Write-Host ""
 Write-Host "Done. Start your hub with:"

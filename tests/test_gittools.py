@@ -1,6 +1,6 @@
 import subprocess
 
-import app.gittools as gittools
+import app.tools.git_ops as gittools
 
 
 def _isolate(tmp_path, monkeypatch):

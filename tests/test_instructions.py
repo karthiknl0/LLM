@@ -1,4 +1,4 @@
-import app.instructions as instructions
+import app.content.instructions as instructions
 
 
 def test_seeds_template_on_first_use(tmp_path, monkeypatch):
