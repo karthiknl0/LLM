@@ -1,8 +1,8 @@
 """Command-line interface for Local AI Hub.
 
-This is the first roadmap step toward an Ollama-style local LLM platform.
-It intentionally reuses the existing model state, chat, runtime, model manager,
-and status modules instead of introducing a second backend path.
+This is the first roadmap step toward a local LLM platform. It reuses the
+existing model state, chat, runtime, model manager, LocalModel packages, and
+status modules instead of introducing a second backend path.
 """
 
 from __future__ import annotations
@@ -12,9 +12,21 @@ import os
 import sys
 from collections.abc import Iterable
 
+from app.model_packages import (
+    list_packages,
+    load_package,
+    package_messages,
+    package_options,
+    resolve_model_or_package,
+)
 from app.models import describe_model, list_models, pull_model, remove_model
 from app.runtime import runtime
-from app.session.modelstate import current_model, installed_models, set_model
+from app.session.modelstate import current_model, set_model
+
+DEFAULT_SYSTEM = (
+    "You are a helpful local AI assistant running entirely on the user's "
+    "own computer. Be concise and practical."
+)
 
 
 def _print_markdown(text: str) -> None:
@@ -22,26 +34,39 @@ def _print_markdown(text: str) -> None:
     print(text.strip())
 
 
+def _resolve_requested_model(name: str | None) -> tuple[str, object | None, str]:
+    requested = name or current_model()
+    runtime_model, package = resolve_model_or_package(requested)
+    runtime_model = runtime_model or requested
+    return runtime_model, package, requested
+
+
 def _chat_once(prompt: str, model: str | None = None, stream: bool = True) -> str:
-    """Send one prompt to the active local model and optionally stream output."""
-    selected_model = model or current_model()
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are a helpful local AI assistant running entirely on the "
-                "user's own computer. Be concise and practical."
-            ),
-        },
-        {"role": "user", "content": prompt},
-    ]
+    """Send one prompt to the active local model or LocalModel package."""
+    runtime_model, package, _requested = _resolve_requested_model(model)
+    messages = package_messages(
+        package,
+        [{"role": "user", "content": prompt}],
+        fallback_system=DEFAULT_SYSTEM,
+    )
+    options = package_options(package)
 
     if not stream:
-        response = runtime().chat(model=selected_model, messages=messages, stream=False)
+        response = runtime().chat(
+            model=runtime_model,
+            messages=messages,
+            stream=False,
+            options=options,
+        )
         return response["message"]["content"]
 
     reply = ""
-    for part in runtime().chat(model=selected_model, messages=messages, stream=True):
+    for part in runtime().chat(
+        model=runtime_model,
+        messages=messages,
+        stream=True,
+        options=options,
+    ):
         chunk = part["message"]["content"]
         reply += chunk
         print(chunk, end="", flush=True)
@@ -70,12 +95,24 @@ def cmd_list(args: argparse.Namespace) -> int:
 
 
 def cmd_inspect(args: argparse.Namespace) -> int:
-    """Show normalized metadata for one installed model."""
+    """Show normalized metadata for one installed model or package."""
+    package = load_package(args.model)
+    if package is not None:
+        print(f"Name: {package.name}")
+        print(f"Type: LocalModel package")
+        print(f"Base: {package.base}")
+        print(f"Path: {package.path}")
+        print(f"Capabilities: {', '.join(package.capabilities) or 'unknown'}")
+        print(f"Parameters: {package.parameters or '{}'}")
+        print(f"Description: {package.description or 'none'}")
+        return 0
+
     model = describe_model(args.model)
     if model is None:
-        print(f"Model not found: {args.model}", file=sys.stderr)
+        print(f"Model or package not found: {args.model}", file=sys.stderr)
         return 1
     print(f"Name: {model.name}")
+    print(f"Type: runtime model")
     print(f"Runtime: {model.runtime}")
     print(f"Capabilities: {', '.join(model.capabilities)}")
     print(f"Size: {_format_size(model.size)}")
@@ -84,20 +121,32 @@ def cmd_inspect(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_packages(_args: argparse.Namespace) -> int:
+    """List LocalModel packages."""
+    packages = list_packages()
+    if not packages:
+        print("No LocalModel packages found. Add data/models/<name>/LocalModel.yaml")
+        return 0
+    for package in packages:
+        caps = ",".join(package.capabilities) or "unknown"
+        print(f"{package.name}\tbase={package.base}\t{caps}\t{package.path}")
+    return 0
+
+
 def cmd_model(args: argparse.Namespace) -> int:
-    """Show or switch the active model."""
+    """Show or switch the active model or package."""
     if args.name:
         _print_markdown(set_model(args.name))
     else:
-        print(f"Active model: {current_model()}")
+        print(f"Active model/package: {current_model()}")
     return 0
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    """Run one prompt against a local model."""
+    """Run one prompt against a local model or package."""
     prompt = " ".join(args.prompt).strip()
     if not prompt:
-        print("Usage: local-ai run [--model MODEL] <prompt>", file=sys.stderr)
+        print("Usage: local-ai run [--model MODEL_OR_PACKAGE] <prompt>", file=sys.stderr)
         return 2
     if args.model:
         set_model(args.model)
@@ -109,19 +158,17 @@ def cmd_chat(args: argparse.Namespace) -> int:
     """Open an interactive terminal chat."""
     if args.model:
         set_model(args.model)
-    model = current_model()
-    print(f"Local AI Hub chat — model: {model}")
+    runtime_model, package, requested = _resolve_requested_model(None)
+    label = f"{requested} -> {runtime_model}" if package else runtime_model
+    print(f"Local AI Hub chat — model: {label}")
     print("Type /exit, /quit, or Ctrl-C to stop.\n")
 
-    history: list[dict[str, str]] = [
-        {
-            "role": "system",
-            "content": (
-                "You are a helpful local AI assistant running entirely on the "
-                "user's own computer. Be concise and practical."
-            ),
-        }
-    ]
+    history: list[dict[str, str]] = package_messages(
+        package,
+        [],
+        fallback_system=DEFAULT_SYSTEM,
+    )
+    options = package_options(package)
 
     while True:
         try:
@@ -139,7 +186,12 @@ def cmd_chat(args: argparse.Namespace) -> int:
         history.append({"role": "user", "content": user_message})
         print("ai> ", end="", flush=True)
         reply = ""
-        for part in runtime().chat(model=current_model(), messages=history, stream=True):
+        for part in runtime().chat(
+            model=runtime_model,
+            messages=history,
+            stream=True,
+            options=options,
+        ):
             chunk = part["message"]["content"]
             reply += chunk
             print(chunk, end="", flush=True)
@@ -197,7 +249,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
 
 
 def cmd_api(args: argparse.Namespace) -> int:
-    """Start the OpenAI/Ollama-compatible API server."""
+    """Start the OpenAI-compatible API server."""
     import uvicorn
 
     host = args.host or os.environ.get("AIHUB_API_HOST", "127.0.0.1")
@@ -219,22 +271,25 @@ def build_parser() -> argparse.ArgumentParser:
     list_parser.add_argument("--all", action="store_true", help="include embedding models")
     list_parser.set_defaults(func=cmd_list)
 
-    inspect_parser = sub.add_parser("inspect", help="show metadata for one model")
-    inspect_parser.add_argument("model", help="model name to inspect")
+    inspect_parser = sub.add_parser("inspect", help="show metadata for one model or package")
+    inspect_parser.add_argument("model", help="model or package name to inspect")
     inspect_parser.set_defaults(func=cmd_inspect)
 
-    model_parser = sub.add_parser("model", help="show or switch the active model")
-    model_parser.add_argument("name", nargs="?", help="model name to activate")
+    packages_parser = sub.add_parser("packages", help="list LocalModel packages")
+    packages_parser.set_defaults(func=cmd_packages)
+
+    model_parser = sub.add_parser("model", help="show or switch the active model/package")
+    model_parser.add_argument("name", nargs="?", help="model or package name to activate")
     model_parser.set_defaults(func=cmd_model)
 
     run_parser = sub.add_parser("run", help="run one prompt")
     run_parser.add_argument("prompt", nargs=argparse.REMAINDER, help="prompt text")
-    run_parser.add_argument("--model", help="model to use for this prompt")
+    run_parser.add_argument("--model", help="model or package to use for this prompt")
     run_parser.add_argument("--no-stream", action="store_true", help="print only the final reply")
     run_parser.set_defaults(func=cmd_run)
 
     chat_parser = sub.add_parser("chat", help="open an interactive terminal chat")
-    chat_parser.add_argument("--model", help="model to use for the chat session")
+    chat_parser.add_argument("--model", help="model or package to use for the chat session")
     chat_parser.set_defaults(func=cmd_chat)
 
     status_parser = sub.add_parser("status", help="check runtime, models, GPU, and data")
@@ -243,11 +298,11 @@ def build_parser() -> argparse.ArgumentParser:
     doctor_parser = sub.add_parser("doctor", help="alias for status")
     doctor_parser.set_defaults(func=cmd_status)
 
-    pull_parser = sub.add_parser("pull", help="pull a model through the model manager")
+    pull_parser = sub.add_parser("pull", help="pull a runtime model")
     pull_parser.add_argument("model", help="model name, for example qwen3.5:4b")
     pull_parser.set_defaults(func=cmd_pull)
 
-    rm_parser = sub.add_parser("rm", help="remove a model through the model manager")
+    rm_parser = sub.add_parser("rm", help="remove a runtime model")
     rm_parser.add_argument("model", help="model name to remove")
     rm_parser.set_defaults(func=cmd_rm)
 
@@ -258,7 +313,7 @@ def build_parser() -> argparse.ArgumentParser:
     serve_parser.add_argument("--browser", action="store_true", help="open the browser automatically")
     serve_parser.set_defaults(func=cmd_serve)
 
-    api_parser = sub.add_parser("api", help="start the OpenAI/Ollama-compatible API server")
+    api_parser = sub.add_parser("api", help="start the OpenAI-compatible API server")
     api_parser.add_argument("--host", help="host to bind, default: AIHUB_API_HOST or 127.0.0.1")
     api_parser.add_argument("--port", type=int, help="port to bind, default: AIHUB_API_PORT or 11435")
     api_parser.add_argument("--reload", action="store_true", help="reload API server on code changes")
