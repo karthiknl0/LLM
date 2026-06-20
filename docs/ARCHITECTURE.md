@@ -16,7 +16,7 @@ Model manager
         ↓
 Runtime abstraction
         ↓
-Default local backend
+Configured local backend
 ```
 
 ## Main layers
@@ -78,7 +78,26 @@ app/runtime/ollama_runtime.py
 app/runtime/llamacpp_runtime.py
 ```
 
-`OllamaRuntime` is the default production backend. `LlamaCppRuntime` is a reserved placeholder for a future direct GGUF backend.
+`OllamaRuntime` is the default production backend. `LlamaCppRuntime` can discover `.gguf` files from `data/gguf/`, but inference is not implemented yet.
+
+### GGUF model discovery
+
+`data/gguf/` is reserved for direct local GGUF model files.
+
+Example:
+
+```text
+data/gguf/demo.gguf
+data/gguf/qwen/qwen-test.gguf
+```
+
+With `AIHUB_RUNTIME=llamacpp`, these appear as runtime models:
+
+```bash
+AIHUB_RUNTIME=llamacpp local-ai list
+```
+
+Chat/generate/embed are still disabled for this backend until inference is implemented.
 
 ### RAG
 
@@ -96,13 +115,11 @@ The runtime is selected through:
 AIHUB_RUNTIME=ollama
 ```
 
-Reserved value:
+Reserved/discovery-only value:
 
 ```bash
 AIHUB_RUNTIME=llamacpp
 ```
-
-`llamacpp` currently returns a clear not-implemented error. It is present only to document the future adapter shape.
 
 ## Design rules
 
@@ -114,12 +131,12 @@ AIHUB_RUNTIME=llamacpp
 
 ## Next architecture step
 
-Implement a real `LlamaCppRuntime` behind the existing placeholder. The safest order is:
+Implement non-streaming `generate` in `LlamaCppRuntime`. The safest order is:
 
-1. Add explicit config for GGUF model directories.
-2. Add model discovery for local `.gguf` files.
+1. Add optional dependency docs for the chosen backend library.
+2. Add a loader for one `.gguf` file by model name.
 3. Implement non-streaming `generate`.
 4. Implement non-streaming `chat` by formatting messages.
 5. Add streaming.
 6. Add embedding support only if a compatible embedding model is configured.
-7. Add tests with a fake backend path before requiring real model files in CI.
+7. Add tests with fake objects so CI does not need a real model file.
