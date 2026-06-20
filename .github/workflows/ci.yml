@@ -15,8 +15,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      # Keep CI lightweight. These cover the pure-logic tests for the CLI,
-      # model manager, LocalModel packages, runtime wrappers, and API shape.
+      # Keep CI lightweight. These cover pure-logic tests for the CLI,
+      # model manager, LocalModel packages, runtime factory, and API shape.
       # Heavy ML/UI/media dependencies are intentionally not installed here.
       - name: Install test dependencies
         run: |
