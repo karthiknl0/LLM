@@ -1,9 +1,7 @@
-"""Health checks: confirms Ollama, models, GPU, and data are in place,
+"""Health checks: confirms runtime, models, GPU, and data are in place,
 and tells you exactly what to do about anything that's missing."""
 
 import shutil
-
-import ollama
 
 from app.core.config import (
     CHAT_MODEL,
@@ -12,20 +10,24 @@ from app.core.config import (
     ROOT,
     VISION_MODEL,
 )
+from app.runtime import runtime
 
 OK, WARN, FAIL = "✅", "⚠️", "❌"
 
 
-def _check_ollama() -> list[str]:
+def _check_runtime() -> list[str]:
     try:
-        listed = ollama.list()["models"]
+        rt = runtime()
+        listed = rt.list_models()
         installed = {m["model"] for m in listed}
     except Exception as exc:
         return [
-            f"{FAIL} Ollama server not reachable ({exc}). "
-            "Start it with `ollama serve`."
+            f"{FAIL} Model runtime not reachable ({exc}). "
+            "If using Ollama, start it with `ollama serve`."
         ]
-    lines = [f"{OK} Ollama server is running ({len(installed)} models installed)"]
+    lines = [
+        f"{OK} Runtime `{rt.name}` is running ({len(installed)} models installed)"
+    ]
     for label, name in (
         ("Chat model", CHAT_MODEL),
         ("Vision model", VISION_MODEL),
@@ -116,7 +118,7 @@ def _check_mcp() -> list[str]:
 
 def run_checks() -> str:
     sections = (
-        ("Ollama & models", _check_ollama),
+        ("Runtime & models", _check_runtime),
         ("GPU", _check_gpu),
         ("Data", _check_data),
         ("Email", _check_email),
