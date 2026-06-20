@@ -3,13 +3,8 @@ and tells you exactly what to do about anything that's missing."""
 
 import shutil
 
-from app.core.config import (
-    CHAT_MODEL,
-    DOCUMENTS_DIR,
-    EMBED_MODEL,
-    ROOT,
-    VISION_MODEL,
-)
+from app.core.config import DOCUMENTS_DIR, ROOT
+from app.models import default_model_checks, list_models
 from app.runtime import runtime
 
 OK, WARN, FAIL = "✅", "⚠️", "❌"
@@ -18,28 +13,23 @@ OK, WARN, FAIL = "✅", "⚠️", "❌"
 def _check_runtime() -> list[str]:
     try:
         rt = runtime()
-        listed = rt.list_models()
-        installed = {m["model"] for m in listed}
+        models = list_models(include_embeddings=True)
     except Exception as exc:
         return [
             f"{FAIL} Model runtime not reachable ({exc}). "
             "If using Ollama, start it with `ollama serve`."
         ]
     lines = [
-        f"{OK} Runtime `{rt.name}` is running ({len(installed)} models installed)"
+        f"{OK} Runtime `{rt.name}` is running ({len(models)} models installed)"
     ]
-    for label, name in (
-        ("Chat model", CHAT_MODEL),
-        ("Vision model", VISION_MODEL),
-        ("Embedding model", EMBED_MODEL),
-    ):
-        present = any(
-            m == name or m.split(":")[0] == name for m in installed
-        )
-        if present:
-            lines.append(f"{OK} {label} `{name}` is pulled")
+    for check in default_model_checks():
+        if check["present"]:
+            lines.append(f"{OK} {check['label']} `{check['name']}` is installed")
         else:
-            lines.append(f"{FAIL} {label} `{name}` missing — run `ollama pull {name}`")
+            lines.append(
+                f"{FAIL} {check['label']} `{check['name']}` missing — "
+                f"run `{check['install_command']}`"
+            )
     return lines
 
 
