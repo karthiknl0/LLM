@@ -1,6 +1,6 @@
 # Local AI Hub CLI
 
-The `local-ai` command is the first roadmap milestone toward an Ollama-style local LLM platform.
+The `local-ai` command is the first roadmap milestone toward a local LLM platform.
 
 ## Install
 
@@ -14,28 +14,38 @@ This registers the `local-ai` console command.
 
 ## Commands
 
-### Show installed models
+### Show installed runtime models
 
 ```bash
 local-ai list
 local-ai list --all
 ```
 
-The active model is marked with `*`. The list shows inferred capabilities and size. By default, embedding-only models are hidden; use `--all` to include them.
+The active model/package is marked with `*` when it matches a runtime model. The list shows inferred capabilities and size. By default, embedding-only models are hidden; use `--all` to include them.
 
-### Inspect one model
+### Show LocalModel packages
+
+```bash
+local-ai packages
+```
+
+Packages are loaded from `LocalModel.yaml` files in the repo root or under `data/models/`.
+
+### Inspect one model or package
 
 ```bash
 local-ai inspect qwen3.5:4b
+local-ai inspect saree-assistant
 ```
 
-Shows normalized metadata such as runtime, capabilities, size, family, and modified time.
+Shows normalized metadata such as runtime, capabilities, size, family, modified time, package base, parameters, and path.
 
-### Show or switch active model
+### Show or switch active model/package
 
 ```bash
 local-ai model
 local-ai model qwen3.5:4b
+local-ai model saree-assistant
 ```
 
 ### Run one prompt
@@ -43,6 +53,7 @@ local-ai model qwen3.5:4b
 ```bash
 local-ai run "Write a Python function to parse a CSV file"
 local-ai run --model qwen3.5:4b "Explain RAG in simple words"
+local-ai run --model saree-assistant "Draft a WhatsApp follow-up"
 ```
 
 Use `--no-stream` to print only the final response.
@@ -52,11 +63,12 @@ Use `--no-stream` to print only the final response.
 ```bash
 local-ai chat
 local-ai chat --model qwen3.5:4b
+local-ai chat --model saree-assistant
 ```
 
 Exit with `/exit`, `/quit`, `Ctrl-C`, or `Ctrl-D`.
 
-### Pull or remove models
+### Pull or remove runtime models
 
 ```bash
 local-ai pull qwen3.5:4b
@@ -104,13 +116,12 @@ See `docs/API.md` for curl and SDK examples.
 
 ## Current limitations
 
-- The CLI and API currently wrap the existing Ollama-backed runtime.
-- Model capabilities are inferred from names and runtime metadata until `LocalModel.yaml` exists.
+- The CLI and API currently use the configured local runtime. Ollama is the default backend implementation.
+- Model capabilities are inferred from names and runtime metadata unless a LocalModel package defines them explicitly.
 - API auth is not implemented yet; keep the API bound to `127.0.0.1` unless you trust your network.
 - Token usage values in OpenAI-compatible responses are placeholders for now.
-- It does not yet support `LocalModel.yaml` packages.
-- It does not yet provide alternate runtimes such as llama.cpp, vLLM, or Transformers.
+- Alternate runtime implementations such as llama.cpp, vLLM, or Transformers are not implemented yet.
 
 ## Next roadmap step
 
-Add `LocalModel.yaml` package support for named presets with system prompts, parameters, RAG defaults, and explicit capabilities.
+Add tests and developer polish around CLI, API, model packages, and runtime abstraction.
