@@ -13,9 +13,18 @@ import ollama as _ollama
 
 _real_chat = _ollama.chat
 
+DEFAULT_CHAT_OPTIONS = {
+    "num_ctx": 32768,
+    "num_predict": 4096,
+}
+
 
 def _chat_no_think(*args, **kwargs):
     kwargs.setdefault("think", False)
+    options = dict(kwargs.get("options") or {})
+    for name, value in DEFAULT_CHAT_OPTIONS.items():
+        options.setdefault(name, value)
+    kwargs["options"] = options
     return _real_chat(*args, **kwargs)
 
 

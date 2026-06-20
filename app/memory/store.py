@@ -20,6 +20,17 @@ LESSONS_COLLECTION = "lessons"
 # below this embedding distance a new entry is considered a duplicate
 DUPLICATE_DISTANCE = 0.15
 
+_GENERIC_GREETINGS = {
+    "hi", "hello", "hey", "good morning", "good afternoon", "good evening",
+    "how are you", "whats up", "what is up",
+}
+
+
+def _is_generic_greeting(query: str) -> bool:
+    normalized = re.sub(r"[^a-z0-9 ]", "", (query or "").lower())
+    normalized = " ".join(normalized.split())
+    return normalized in _GENERIC_GREETINGS
+
 EXTRACT_PROMPT = (
     "You maintain long-term memory for a personal AI assistant. Analyze "
     "the conversation turn below and reply with exactly two lines:\n"
@@ -71,11 +82,15 @@ def _recall_from(collection_name: str, query: str, k: int) -> list[str]:
 
 def recall(query: str, k: int = 5) -> list[str]:
     """Stored facts about the user relevant to the query."""
+    if _is_generic_greeting(query):
+        return []
     return _recall_from(FACTS_COLLECTION, query, k)
 
 
 def recall_lessons(query: str, k: int = 5) -> list[str]:
     """Behavioral lessons relevant to the query."""
+    if _is_generic_greeting(query):
+        return []
     return _recall_from(LESSONS_COLLECTION, query, k)
 
 

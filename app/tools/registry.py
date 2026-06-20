@@ -6,7 +6,7 @@ from app.core.config import ROOT
 from app.media.imagegen import generate_image as _raw_generate_image
 from app.services import mcp
 from app.tools.code_exec import run_command, run_python
-from app.tools.file_ops import list_files, propose_edit, read_file, search_files
+from app.tools.file_ops import edit_file, list_files, propose_edit, read_file, search_files, write_file
 from app.tools.git_ops import git_clone, git_commit, git_pull, git_push, git_status
 from app.tools.browser import verify_in_browser
 from app.tools.screen import look_at_screen
@@ -94,13 +94,14 @@ TOOLS = [
         "function": {
             "name": "read_file",
             "description": (
-                "Read a file anywhere in the user's allowed folders (their "
-                "home directory by default). Use absolute paths."
+                "Read a file. Relative paths such as 'requirements.txt' are "
+                "resolved from the active project root; absolute paths in "
+                "the user's allowed folders also work."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "path": {"type": "string", "description": "Absolute file path"}
+                    "path": {"type": "string", "description": "Project-relative or absolute file path"}
                 },
                 "required": ["path"],
             },
@@ -145,6 +146,63 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "edit_file",
+            "description": (
+                "Edit an existing active-project file by replacing one exact, "
+                "unique text block. Read the file first, then pass the exact "
+                "old_text and its replacement. Applied immediately with a "
+                "backup. Prefer this over rewriting a whole source file."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "Path relative to the active project",
+                    },
+                    "old_text": {
+                        "type": "string",
+                        "description": "Exact unique text currently in the file",
+                    },
+                    "new_text": {
+                        "type": "string",
+                        "description": "Replacement text",
+                    },
+                },
+                "required": ["path", "old_text", "new_text"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "write_file",
+            "description": (
+                "Create or replace a file directly inside the active project. "
+                "Use a project-relative path and provide the COMPLETE content. "
+                "The change is applied immediately and existing files are "
+                "backed up automatically. Use this when the user asks you to "
+                "implement, create, update, fix, or upgrade project files."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "Path relative to the active project",
+                    },
+                    "new_content": {
+                        "type": "string",
+                        "description": "Complete new file content",
+                    },
+                },
+                "required": ["path", "new_content"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "propose_edit",
             "description": (
                 "Propose new content for a file in the user's allowed "
@@ -155,7 +213,7 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "path": {"type": "string", "description": "Absolute file path"},
+                    "path": {"type": "string", "description": "Project-relative or absolute file path"},
                     "new_content": {
                         "type": "string",
                         "description": "Full new content of the file",
@@ -437,6 +495,8 @@ TOOL_FUNCTIONS = {
     "read_file": read_file,
     "list_files": list_files,
     "search_files": search_files,
+    "edit_file": edit_file,
+    "write_file": write_file,
     "propose_edit": propose_edit,
     "git_clone": git_clone,
     "git_status": git_status,
@@ -461,6 +521,8 @@ TOOL_STATUS = {
     "read_file": "Reading a file",
     "list_files": "Browsing project files",
     "search_files": "Searching project code",
+    "edit_file": "Editing a project file",
+    "write_file": "Writing a project file",
     "propose_edit": "Proposing a file edit (needs your approval)",
     "git_clone": "Cloning repository",
     "git_status": "Checking git status",

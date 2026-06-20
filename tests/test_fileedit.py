@@ -1,4 +1,9 @@
 import app.tools.file_ops as fileedit
+from app.core import project
+
+
+def teardown_function():
+    project.set_project_folder("")
 
 
 def _isolate(tmp_path, monkeypatch):
@@ -6,6 +11,7 @@ def _isolate(tmp_path, monkeypatch):
     monkeypatch.setattr(fileedit, "BACKUPS_DIR", tmp_path / "backups")
     (tmp_path / "allowed").mkdir()
     (tmp_path / "backups").mkdir()
+    project.set_project_folder(str(tmp_path / "allowed"))
     fileedit._pending.clear()
 
 
@@ -77,3 +83,44 @@ def test_identical_content_not_queued(tmp_path, monkeypatch):
 def test_approve_unknown_id(tmp_path, monkeypatch):
     _isolate(tmp_path, monkeypatch)
     assert "No pending edit" in fileedit.approve("nope")
+
+
+def test_relative_paths_resolve_from_active_project(tmp_path, monkeypatch):
+    _isolate(tmp_path, monkeypatch)
+    root = tmp_path / "allowed"
+    (root / "requirements.txt").write_text("old\n")
+
+    assert fileedit.read_file("requirements.txt") == "old\n"
+    result = fileedit.write_file("requirements.txt", "new\n")
+    assert "Wrote" in result
+    assert (root / "requirements.txt").read_text() == "new\n"
+    assert list((tmp_path / "backups").glob("requirements.txt.*.bak"))
+
+
+def test_write_file_creates_project_file_and_blocks_escape(tmp_path, monkeypatch):
+    _isolate(tmp_path, monkeypatch)
+    root = tmp_path / "allowed"
+
+    result = fileedit.write_file("config/new.txt", "created\n")
+    assert "Wrote" in result
+    assert (root / "config" / "new.txt").read_text() == "created\n"
+
+    outside = tmp_path / "outside.txt"
+    refused = fileedit.write_file(str(outside), "nope")
+    assert "outside the active project" in refused
+    assert not outside.exists()
+
+def test_edit_file_replaces_one_exact_block(tmp_path, monkeypatch):
+    _isolate(tmp_path, monkeypatch)
+    root = tmp_path / "allowed"
+    target = root / "app.py"
+    target.write_text("before\nold block\nafter\n")
+
+    result = fileedit.edit_file("app.py", "old block", "new block")
+    assert "Edited" in result
+    assert target.read_text() == "before\nnew block\nafter\n"
+
+    target.write_text("same\nsame\n")
+    refused = fileedit.edit_file("app.py", "same", "changed")
+    assert "matches 2 places" in refused
+    assert target.read_text() == "same\nsame\n"
