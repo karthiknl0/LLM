@@ -8,11 +8,12 @@ from pathlib import Path
 
 import ollama
 
-from app import gittools, hooks, imagegen, mcp_client, rag, research, sandbox, screen, skills
+from app import gittools, hooks, imagegen, mcp_client, project, rag, research, sandbox, screen, skills
 from app.browser import verify_in_browser
+from app.coding_profile import CODING_AGENT_PROFILE
 from app.instructions import standing_instructions
 from app.chat import _log_turn
-from app.config import ROOT, WORKSPACE_DIR
+from app.config import ROOT
 from app.modelstate import current_model
 from app.fileedit import list_files, propose_edit, read_file, search_files
 from app.history import compact_history
@@ -48,13 +49,15 @@ SYSTEM_PROMPT = (
     "own computer, with tools. Use search_documents for questions about "
     "the user's own files, web_research for current events or anything "
     "you're unsure about, generate_image when asked to create a picture, "
-    "and run_python for any calculation, data analysis, or file "
+    "and run_python for any calculation, data analysis, or project file "
     "processing — never do arithmetic in your head. If run_python returns "
     "an error, read the error message, fix the code, and run it again — "
     "don't give up after one failure. Use look_at_screen when the user "
-    "refers to what is currently on their screen. For git work: "
-    "git_clone a repo, edit its files under repos/<name>/ with "
-    "run_python, commit to an ai/ branch with git_commit, and call "
+    "refers to what is currently on their screen. Work in the selected "
+    "project folder when one is active. For git work: use repo='.' for "
+    "git_status/git_commit/git_push when the selected folder is already "
+    "a git repo. Use git_clone only when the user gives a remote repo URL "
+    "that is not available locally. Commit to an ai/ branch with git_commit, and call "
     "git_push ONLY when the user explicitly asks to push — the push "
     "creates a branch they review as a pull request. "
     f"Your own Local AI Hub source code is at {ROOT}. When asked about "
@@ -74,13 +77,14 @@ SYSTEM_PROMPT = (
     "code that solves the problem — no speculative features or "
     "abstractions. Change only what the task requires; match the "
     "existing style and never rewrite unrelated code. Verify before "
-    "declaring done: after editing code in a cloned repo, build and test "
+    "declaring done: after editing code, build and test "
     "it with run_command (e.g. 'pytest -q', 'npm test', 'npm run build', "
-    "with cwd set to repos/<name>) and fix any failures before "
+    "with cwd set to '.' or a subfolder) and fix any failures before "
     "finishing — for bug fixes, run the test that reproduces the bug "
     "first, then show it passing. After building or changing anything "
     "with a web page, verify_in_browser it (use file:// for HTML files "
-    "in the workspace) and fix what the check reveals before answering."
+    "in the selected project) and fix what the check reveals before answering."
+    "\n\nCODING AGENT OPERATING PROFILE:\n" + CODING_AGENT_PROFILE
 )
 
 TOOLS = [
@@ -125,9 +129,10 @@ TOOLS = [
             "description": (
                 "Execute Python code and return its output. Use for math, "
                 "data analysis, and file processing. The working directory "
-                "is the user's workspace folder (data/workspace/) — read "
-                "and write files there, print() results, and save plots "
-                "as .png files. pandas and matplotlib are available."
+                "is the selected project folder, or data/workspace/ if no "
+                "project is selected. Read and write files there, print() "
+                "results, and save plots as .png files. pandas and "
+                "matplotlib are available."
             ),
             "parameters": {
                 "type": "object",
@@ -223,9 +228,9 @@ TOOLS = [
         "function": {
             "name": "run_command",
             "description": (
-                "Run a build, test, or shell command inside the workspace "
-                "and get its output and exit code. Set cwd to the repo "
-                "folder (e.g. repos/<name>). Use to build and test code "
+                "Run a build, test, or shell command inside the selected "
+                "project folder and get its output and exit code. Set cwd "
+                "to '.' or a project subfolder. Use to build and test code "
                 "you edit: pytest, npm test, npm run build, make, etc."
             ),
             "parameters": {
@@ -234,7 +239,7 @@ TOOLS = [
                     "command": {"type": "string", "description": "Shell command to run"},
                     "cwd": {
                         "type": "string",
-                        "description": "Dir under the workspace, e.g. repos/myrepo",
+                        "description": "Dir under the selected project, e.g. . or app",
                     },
                 },
                 "required": ["command"],
@@ -259,11 +264,11 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "git_status",
-            "description": "Show the current branch and uncommitted changes of a cloned repository.",
+            "description": "Show branch and uncommitted changes. Use repo='.' for the selected project.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "repo": {"type": "string", "description": "Repository folder name"}
+                    "repo": {"type": "string", "description": "Repository folder name, or . for selected project"}
                 },
                 "required": ["repo"],
             },
@@ -280,7 +285,7 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "repo": {"type": "string", "description": "Repository folder name"},
+                    "repo": {"type": "string", "description": "Repository folder name, or . for selected project"},
                     "branch": {"type": "string", "description": "Branch like ai/fix-typo"},
                     "message": {"type": "string", "description": "Commit message"},
                 },
@@ -300,7 +305,7 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "repo": {"type": "string", "description": "Repository folder name"}
+                    "repo": {"type": "string", "description": "Repository folder name, or . for selected project"}
                 },
                 "required": ["repo"],
             },
@@ -501,6 +506,7 @@ def run_with_tools(system: str, user: str, max_rounds: int = MAX_TOOL_ROUNDS) ->
     rules = standing_instructions()
     if rules:
         system += "\n\nThe user's standing instructions (always follow):\n" + rules
+    system += "\n\nActive project folder for tools: " + project.active_project_label()
     messages = [
         {"role": "system", "content": system + _skill_hints(user) + catalog_hint()},
         {"role": "user", "content": user},
@@ -549,9 +555,10 @@ def _describe_attachments(files: list[str], question: str) -> list[str]:
             notes.append(f"[Attached '{name}' — vision model analysis: {analysis}]")
         else:
             try:
-                shutil.copy(path, WORKSPACE_DIR / name)
+                target_dir = project.active_project_folder()
+                shutil.copy(path, target_dir / name)
                 notes.append(
-                    f"[Attached file saved to the workspace as '{name}' — "
+                    f"[Attached file saved to the active project as '{name}' — "
                     "use run_python to read it.]"
                 )
             except Exception as exc:
@@ -560,7 +567,11 @@ def _describe_attachments(files: list[str], question: str) -> list[str]:
 
 
 def agent_chat(
-    message, history: list[dict], deep_answer: bool = False, plan_mode: bool = False
+    message,
+    history: list[dict],
+    project_folder: str = "",
+    deep_answer: bool = False,
+    plan_mode: bool = False,
 ):
     """Generator for the Agent tab: yields tool-use progress, then the
     final answer. With deep_answer, the model reviews and corrects its
@@ -572,6 +583,10 @@ def agent_chat(
         message = (message.get("text") or "").strip()
     if not message and not files:
         yield "Say something or attach a file."
+        return
+    ok, project_status = project.set_project_folder(project_folder)
+    if not ok:
+        yield project_status
         return
     if not files:
         if message.strip().lower() == "/compact":
@@ -596,6 +611,11 @@ def agent_chat(
     yield "*Thinking…*"
 
     system = SYSTEM_PROMPT
+    system += "\n\nActive project folder for tools: " + project.active_project_label()
+    system += (
+        "\nUse this folder as the project root. Prefer relative cwd='.' for "
+        "run_command unless a subfolder is needed."
+    )
     memories = recall(message) if message else []
     if memories:
         system += "\n\nThings you remember about the user:\n"

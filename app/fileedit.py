@@ -14,6 +14,7 @@ import uuid
 from pathlib import Path
 
 from app.config import BACKUPS_DIR, EDIT_ROOTS
+from app.project import is_inside_active_project
 
 MAX_READ_CHARS = 8000
 MAX_LIST_ENTRIES = 200
@@ -35,6 +36,8 @@ def _allowed(path: Path) -> bool:
         root = Path(root).resolve()
         if resolved == root or root in resolved.parents:
             return True
+    if is_inside_active_project(resolved):
+        return True
     return False
 
 
