@@ -100,6 +100,31 @@ def load_package_file(path: str | Path) -> LocalModelPackage:
     return _load_path(Path(path).expanduser().resolve())
 
 
+def install_package_file(path: str | Path, *, overwrite: bool = False) -> LocalModelPackage:
+    """Validate and copy a LocalModel file into the package directory.
+
+    Files are installed as `data/models/<name>/LocalModel.yaml`. The package
+    name must be a simple folder name so this helper never writes outside the
+    configured package directory.
+    """
+    source = Path(path).expanduser().resolve()
+    package = load_package_file(source)
+    name = package.name.strip()
+    if not name or name in {".", ".."} or "/" in name or "\\" in name:
+        raise ValueError(
+            "LocalModel package name must be a simple folder name without path separators"
+        )
+
+    target_dir = PACKAGES_DIR / name
+    target = target_dir / "LocalModel.yaml"
+    if target.exists() and not overwrite:
+        raise FileExistsError(f"{target} already exists. Use --force to overwrite it.")
+
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+    return load_package_file(target)
+
+
 def list_packages() -> list[LocalModelPackage]:
     """Return all valid LocalModel packages, sorted by name."""
     packages: list[LocalModelPackage] = []
