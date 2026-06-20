@@ -13,6 +13,7 @@ import sys
 from collections.abc import Iterable
 
 from app.model_packages import (
+    install_package_file,
     list_packages,
     load_package,
     package_messages,
@@ -99,7 +100,7 @@ def cmd_inspect(args: argparse.Namespace) -> int:
     package = load_package(args.model)
     if package is not None:
         print(f"Name: {package.name}")
-        print(f"Type: LocalModel package")
+        print("Type: LocalModel package")
         print(f"Base: {package.base}")
         print(f"Path: {package.path}")
         print(f"Capabilities: {', '.join(package.capabilities) or 'unknown'}")
@@ -112,7 +113,7 @@ def cmd_inspect(args: argparse.Namespace) -> int:
         print(f"Model or package not found: {args.model}", file=sys.stderr)
         return 1
     print(f"Name: {model.name}")
-    print(f"Type: runtime model")
+    print("Type: runtime model")
     print(f"Runtime: {model.runtime}")
     print(f"Capabilities: {', '.join(model.capabilities)}")
     print(f"Size: {_format_size(model.size)}")
@@ -130,6 +131,18 @@ def cmd_packages(_args: argparse.Namespace) -> int:
     for package in packages:
         caps = ",".join(package.capabilities) or "unknown"
         print(f"{package.name}\tbase={package.base}\t{caps}\t{package.path}")
+    return 0
+
+
+def cmd_create(args: argparse.Namespace) -> int:
+    """Install a LocalModel package file."""
+    package = install_package_file(args.file, overwrite=args.force)
+    print("Created LocalModel package")
+    print(f"Name: {package.name}")
+    print(f"Base: {package.base}")
+    print(f"Path: {package.path}")
+    if args.activate:
+        print(set_model(package.name).strip())
     return 0
 
 
@@ -277,6 +290,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     packages_parser = sub.add_parser("packages", help="list LocalModel packages")
     packages_parser.set_defaults(func=cmd_packages)
+
+    create_parser = sub.add_parser("create", help="install a LocalModel.yaml package")
+    create_parser.add_argument("-f", "--file", required=True, help="path to LocalModel.yaml")
+    create_parser.add_argument("--force", action="store_true", help="overwrite an existing package")
+    create_parser.add_argument("--activate", action="store_true", help="set the package as active")
+    create_parser.set_defaults(func=cmd_create)
 
     model_parser = sub.add_parser("model", help="show or switch the active model/package")
     model_parser.add_argument("name", nargs="?", help="model or package name to activate")
