@@ -5,7 +5,7 @@ agent, team, research, memory extraction.
 """
 
 from app.core.config import CHAT_MODEL, ROOT
-from app.runtime import runtime
+from app.models import chat_model_names
 
 # Remembers the chosen model across restarts so the dropdown doesn't
 # snap back to the config default every launch.
@@ -42,12 +42,8 @@ def set_model(name: str) -> str:
 
 
 def installed_models() -> list[str]:
-    """Chat-capable models pulled in the configured runtime.
-
-    The primary model (qwen3.5:4b) also serves vision, so it must stay in
-    this list — only dedicated embedding models are filtered out.
-    """
+    """Chat-capable models pulled in the configured runtime."""
     try:
-        return runtime().list_model_names(include_embeddings=False)
+        return chat_model_names()
     except Exception:
         return [_current]
