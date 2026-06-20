@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "local-ai-hub"
 version = "0.1.0"
-description = "Private local AI assistant and Ollama-style LLM platform"
+description = "Private local AI assistant and local LLM platform"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
