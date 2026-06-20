@@ -1,8 +1,8 @@
 """Command-line interface for Local AI Hub.
 
 This is the first roadmap step toward an Ollama-style local LLM platform.
-It intentionally reuses the existing model state, chat, runtime, and status
-modules instead of introducing a second backend path.
+It intentionally reuses the existing model state, chat, runtime, model manager,
+and status modules instead of introducing a second backend path.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import os
 import sys
 from collections.abc import Iterable
 
+from app.models import describe_model, list_models, pull_model, remove_model
 from app.runtime import runtime
 from app.session.modelstate import current_model, installed_models, set_model
 
@@ -48,16 +49,38 @@ def _chat_once(prompt: str, model: str | None = None, stream: bool = True) -> st
     return reply
 
 
-def cmd_list(_args: argparse.Namespace) -> int:
-    """List installed chat-capable models."""
+def _format_size(size: int | None) -> str:
+    if not size:
+        return "unknown"
+    return f"{size / 1e9:.1f} GB"
+
+
+def cmd_list(args: argparse.Namespace) -> int:
+    """List installed models with normalized metadata."""
     active = current_model()
-    models = installed_models()
+    models = list_models(include_embeddings=args.all)
     if not models:
-        print("No chat-capable models found. Try: ollama pull qwen3.5:4b")
+        print("No models found. Try: ollama pull qwen3.5:4b")
         return 1
-    for name in models:
-        marker = "*" if name == active else " "
-        print(f"{marker} {name}")
+    for model in models:
+        marker = "*" if model.name == active else " "
+        caps = ",".join(model.capabilities)
+        print(f"{marker} {model.name}\t{caps}\t{_format_size(model.size)}")
+    return 0
+
+
+def cmd_inspect(args: argparse.Namespace) -> int:
+    """Show normalized metadata for one installed model."""
+    model = describe_model(args.model)
+    if model is None:
+        print(f"Model not found: {args.model}", file=sys.stderr)
+        return 1
+    print(f"Name: {model.name}")
+    print(f"Runtime: {model.runtime}")
+    print(f"Capabilities: {', '.join(model.capabilities)}")
+    print(f"Size: {_format_size(model.size)}")
+    print(f"Family: {model.family or 'unknown'}")
+    print(f"Modified: {model.modified_at or 'unknown'}")
     return 0
 
 
@@ -133,9 +156,9 @@ def cmd_status(_args: argparse.Namespace) -> int:
 
 
 def cmd_pull(args: argparse.Namespace) -> int:
-    """Pull a model through the configured runtime."""
+    """Pull a model through the model manager."""
     print(f"Pulling {args.model}...")
-    for event in runtime().pull_model(args.model, stream=True):
+    for event in pull_model(args.model, stream=True):
         status = event.get("status")
         digest = event.get("digest")
         completed = event.get("completed")
@@ -151,8 +174,8 @@ def cmd_pull(args: argparse.Namespace) -> int:
 
 
 def cmd_rm(args: argparse.Namespace) -> int:
-    """Remove a model through the configured runtime."""
-    runtime().delete_model(args.model)
+    """Remove a model through the model manager."""
+    remove_model(args.model)
     print(f"Removed {args.model}")
     return 0
 
@@ -192,8 +215,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    list_parser = sub.add_parser("list", help="list installed chat-capable models")
+    list_parser = sub.add_parser("list", help="list installed models")
+    list_parser.add_argument("--all", action="store_true", help="include embedding models")
     list_parser.set_defaults(func=cmd_list)
+
+    inspect_parser = sub.add_parser("inspect", help="show metadata for one model")
+    inspect_parser.add_argument("model", help="model name to inspect")
+    inspect_parser.set_defaults(func=cmd_inspect)
 
     model_parser = sub.add_parser("model", help="show or switch the active model")
     model_parser.add_argument("name", nargs="?", help="model name to activate")
@@ -215,11 +243,11 @@ def build_parser() -> argparse.ArgumentParser:
     doctor_parser = sub.add_parser("doctor", help="alias for status")
     doctor_parser.set_defaults(func=cmd_status)
 
-    pull_parser = sub.add_parser("pull", help="pull a model through the configured runtime")
+    pull_parser = sub.add_parser("pull", help="pull a model through the model manager")
     pull_parser.add_argument("model", help="model name, for example qwen3.5:4b")
     pull_parser.set_defaults(func=cmd_pull)
 
-    rm_parser = sub.add_parser("rm", help="remove a model through the configured runtime")
+    rm_parser = sub.add_parser("rm", help="remove a model through the model manager")
     rm_parser.add_argument("model", help="model name to remove")
     rm_parser.set_defaults(func=cmd_rm)
 
