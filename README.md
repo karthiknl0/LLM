@@ -182,12 +182,13 @@ data/models/              LocalModel packages
 data/chatlogs/            chat logs for optional fine-tuning
 outputs/                  generated/exported files
 setup/                    install and update scripts
-docs/                     CLI, API, runtime, model manager, package docs
+docs/                     CLI, API, architecture, runtime, model manager, package docs
 tests/                    pytest suite
 ```
 
 ## Documentation
 
+- `docs/ARCHITECTURE.md`
 - `docs/CLI.md`
 - `docs/API.md`
 - `docs/RUNTIME.md`
