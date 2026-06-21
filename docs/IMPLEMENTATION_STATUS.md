@@ -23,6 +23,10 @@ local-ai inspect <model-or-package>
 local-ai model <model-or-package>
 local-ai run [--model <model-or-package>] <prompt>
 local-ai chat [--model <model-or-package>]
+local-ai code ask <prompt>
+local-ai code chat
+local-ai code init
+local-ai code instructions
 local-ai api
 local-ai serve
 local-ai status
@@ -30,6 +34,17 @@ local-ai doctor
 local-ai pull <model>
 local-ai rm <model>
 ```
+
+### Local Code workflow
+
+Implemented a Claude Code-style local workflow powered by local models:
+
+- `local-ai code ask` for one-shot coding questions
+- `local-ai code chat` for an interactive coding session
+- `local-ai code init` to create a `CLAUDE.md`-style instruction file
+- `local-ai code instructions` to list project instruction files
+- project instruction discovery for `CLAUDE.md`, `AGENTS.md`, `.agents.md`, and `.local-ai.md`
+- no Claude, Anthropic, or paid cloud API calls
 
 ### API
 
@@ -119,6 +134,7 @@ Added focused tests for:
 - runtime factory
 - llama.cpp GGUF discovery
 - llama.cpp fake-backend chat/generate behavior
+- Local Code project instruction discovery and parser behavior
 
 CI runs lightweight tests without requiring large ML/UI/media dependencies.
 
@@ -136,6 +152,7 @@ Added or updated:
 - `docs/LOCALMODEL.md`
 - `docs/LOCALMODEL_CREATE.md`
 - `docs/LLAMACPP.md`
+- `docs/LOCAL_CODE.md`
 
 ## Recommended next optional improvements
 
@@ -147,3 +164,4 @@ These are not required for the current roadmap to be usable:
 4. Add a small UI panel for LocalModel packages.
 5. Add release packaging and versioned changelog.
 6. Add example package files under `examples/`.
+7. Add approval-gated file-edit tools to Local Code.
