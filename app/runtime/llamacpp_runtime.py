@@ -15,6 +15,7 @@ from app.core.config import (
     LLAMACPP_N_GPU_LAYERS,
     LLAMACPP_VERBOSE,
 )
+from app.runtime.chat_templates import format_chat_messages
 
 
 class LlamaCppRuntime:
@@ -112,6 +113,10 @@ class LlamaCppRuntime:
         llm = self._load(model)
         params = dict(options or {})
         params.update(kwargs)
+        template = params.pop("template", None)
+        if template:
+            prompt = format_chat_messages(messages, str(template))
+            return self.generate(model=model, prompt=prompt, stream=stream, options=params)
         response = llm.create_chat_completion(
             messages=messages,
             stream=stream,
