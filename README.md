@@ -74,6 +74,7 @@ python -m app.main
 local-ai list
 local-ai list --all
 local-ai packages
+local-ai create -f LocalModel.yaml
 local-ai inspect qwen3.5:4b
 local-ai inspect saree-assistant
 local-ai model qwen3.5:4b
@@ -131,10 +132,10 @@ capabilities:
   - vision
 ```
 
-Place packages in:
+Install packages with:
 
-```text
-data/models/<package-name>/LocalModel.yaml
+```bash
+local-ai create -f LocalModel.yaml
 ```
 
 Use them anywhere a chat model is accepted:
@@ -213,5 +214,6 @@ tests/                    pytest suite
 - `docs/RUNTIME.md`
 - `docs/MODEL_MANAGER.md`
 - `docs/LOCALMODEL.md`
+- `docs/LOCALMODEL_CREATE.md`
 - `docs/LLAMACPP.md`
 - `ROADMAP.md`
