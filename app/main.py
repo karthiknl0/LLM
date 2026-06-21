@@ -68,6 +68,17 @@ def _run_research(question: str, deep: bool):
     return deep_research(question) if deep else research(question)
 
 
+def local_code_status(project_folder: str) -> str:
+    return "\n\n".join(
+        [
+            catalog_summary(),
+            code_index_summary(project_folder),
+            "Project instructions:\n" + instruction_summary(project_folder),
+            f"Pending combined approvals: **{len(work_queue.rows())}**",
+        ]
+    )
+
+
 def build_app() -> gr.Blocks:
     theme = gr.themes.Base(
         primary_hue="orange",
@@ -280,6 +291,10 @@ def build_app() -> gr.Blocks:
             status_btn = gr.Button("Run checks", variant="primary")
             status_out = gr.Markdown()
             status_btn.click(run_checks, outputs=status_out)
+            status_project = gr.Textbox(label="Project folder for Local Code checks", value=str(WORKSPACE_DIR))
+            local_status_btn = gr.Button("Run Local Code checks")
+            local_status_out = gr.Markdown()
+            local_status_btn.click(local_code_status, inputs=status_project, outputs=local_status_out)
 
     return demo
 
