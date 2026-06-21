@@ -7,6 +7,7 @@ import sys
 from collections.abc import Iterable
 
 from app.cli import main as base_main
+from app.local_code.cli import main as local_code_main
 from app.model_packages import install_package_file
 from app.session.modelstate import set_model
 
@@ -31,6 +32,8 @@ def main(argv: Iterable[str] | None = None) -> int:
     args = list(argv) if argv is not None else sys.argv[1:]
     if args and args[0] == "create":
         return _create_package(args[1:])
+    if args and args[0] == "code":
+        return local_code_main(args[1:])
     return base_main(args)
 
 
