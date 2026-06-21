@@ -13,6 +13,8 @@ from app.content.notes import read_notes, recent_notes
 from app.content.playbooks import catalog_hint
 from app.core.config import WORKSPACE_DIR
 from app.core.project import active_project_folder, active_project_label, set_project_folder
+from app.local_code.indexer import format_index_context, search_project_index
+from app.local_code.instructions import collect_project_instructions, format_instructions
 from app.media.vision import VIDEO_EXTENSIONS, analyze_media
 from app.memory import recall, recall_lessons, remember
 from app.services.hooks import post_reply, pre_tool
@@ -46,6 +48,24 @@ def _describe_attachments(files: list[str], question: str) -> tuple[list[str], l
             except Exception as exc:
                 notes.append(f"[Could not save attachment '{name}': {exc}]")
     return notes, vision
+
+
+def _local_code_context(project: Path, message: str) -> str:
+    """Return project instructions and indexed code snippets for Agent context."""
+    parts: list[str] = []
+    try:
+        instruction_text = format_instructions(collect_project_instructions(project))
+        if instruction_text:
+            parts.append(instruction_text)
+    except Exception as exc:
+        parts.append(f"Project instructions could not be loaded: {exc}")
+    try:
+        index_text = format_index_context(search_project_index(project, message or ""))
+        if index_text:
+            parts.append(index_text)
+    except Exception as exc:
+        parts.append(f"Local code index could not be searched: {exc}")
+    return "\n\n".join(parts)
 
 
 def agent_chat(
@@ -84,14 +104,17 @@ def agent_chat(
         if command_reply is not None:
             yield command_reply
             return
-
     # Render an assistant bubble immediately. The first Ollama call may take
     # several seconds on local hardware, especially when the model is loading.
     yield "*Thinking…*"
 
     system = SYSTEM_PROMPT
+    project_root = active_project_folder(WORKSPACE_DIR)
     memories = recall(message) if message else []
     system += f"\n\nActive project folder: {active_project_label()}"
+    code_context = _local_code_context(project_root, message or "")
+    if code_context:
+        system += "\n\nLocal project context:\n" + code_context
     if memories:
         system += "\n\nThings you remember about the user:\n"
         system += "\n".join(f"- {m}" for m in memories)
@@ -136,12 +159,6 @@ def agent_chat(
     prefix = ("\n\n".join(steps) + "\n\n") if steps else ""
 
     if vision_analyses:
-        # Media attachment: the vision model already produced the analysis.
-        # Answer directly with a lean prompt and NO tools — the coding-agent
-        # tool loop derails the small model on images (it stubs, or treats
-        # "analyze the image" as a code-inspection task and goes browsing
-        # files). Stream the reply; if the model still stubs, fall back to
-        # the vision analysis itself, which is already a complete answer.
         direct = [
             {"role": "system", "content":
                 "You are a helpful assistant. The user attached an image or "
@@ -162,9 +179,6 @@ def agent_chat(
     else:
         seen_calls = set()
         for _round in range(MAX_TOOL_ROUNDS + 1):
-            # Stream the call: tool-deciding rounds send no content (just tool
-            # calls), so nothing shows; the final answer round streams its
-            # tokens live so the user watches the reply appear, not a spinner.
             content = ""
             tool_calls = []
             for part in ollama.chat(
@@ -178,8 +192,6 @@ def agent_chat(
                 if m.get("tool_calls"):
                     tool_calls.extend(m["tool_calls"])
             msg = {"role": "assistant", "content": content, "tool_calls": tool_calls}
-            # Act only on tool calls not already run this turn — a model can
-            # loop on the same call (e.g. list_files) instead of concluding.
             fresh = [c for c in tool_calls if call_sig(c) not in seen_calls]
             if not fresh or _round == MAX_TOOL_ROUNDS:
                 reply = content.strip() or conclude(msg, messages)
