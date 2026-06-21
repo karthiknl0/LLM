@@ -30,10 +30,27 @@ List discovered instruction files:
 local-ai code instructions
 ```
 
+Index a project for better coding context:
+
+```bash
+local-ai code index
+local-ai code search "runtime factory"
+```
+
+Queue an approval-gated file replacement:
+
+```bash
+local-ai code propose --file app/example.py --content-file /tmp/new_example.py --reason "Refactor helper"
+local-ai code edits
+local-ai code diff <edit-id>
+local-ai code apply <edit-id>
+local-ai code reject <edit-id>
+```
+
 Use a specific local model or package:
 
 ```bash
-local-ai code --model qwen3.5:4b ask "Review this function"
+local-ai code --model local-code ask "Review this function"
 local-ai code --model saree-assistant chat
 ```
 
@@ -58,6 +75,33 @@ AGENTS.md
 
 Parent directories are loaded first, then more specific files closer to the project directory.
 
+## Project indexing
+
+`local-ai code index` scans lightweight source and documentation files and stores a compact local JSON index under `data/local_code_index/`.
+
+When you ask a question, Local Code searches the index and injects matching file snippets into the model context. This gives local models more repo awareness without sending code to a cloud API.
+
+## Approval-gated edits
+
+`local-ai code propose` stores proposed complete-file replacements under `data/local_code_edits/`.
+
+Nothing is written to your project until you run:
+
+```bash
+local-ai code apply <edit-id>
+```
+
+When an edit is applied, the original file is backed up under `data/backups/` first.
+
+## Built-in LocalModel package
+
+The repo includes a `local-code` package preset:
+
+```bash
+local-ai model local-code
+local-ai code chat
+```
+
 ## Local-only behavior
 
 Local Code uses:
@@ -65,12 +109,13 @@ Local Code uses:
 - the configured Local AI Hub runtime
 - the active model or LocalModel package
 - local project instruction files
+- local project index snippets
 - local streaming chat responses
 
 It does not provide paid Claude access and does not bypass Anthropic billing. It gives a similar local workflow using your own model backend.
 
 ## Safety notes
 
-- Local Code does not automatically edit files in this first version.
-- It can explain code, plan changes, review snippets, and suggest commands.
+- Local Code does not automatically edit files.
+- Proposed edits are approval-gated and backed up before application.
 - Treat generated commands as suggestions and review them before running.
