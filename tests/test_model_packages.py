@@ -63,6 +63,31 @@ def test_resolve_model_or_package_returns_base_for_package(tmp_path, monkeypatch
     assert package.name == "writer"
 
 
+def test_install_package_file_copies_valid_package(tmp_path, monkeypatch):
+    source = tmp_path / "LocalModel.yaml"
+    source.write_text("name: writer\nbase: qwen3.5:4b\n", encoding="utf-8")
+    packages_dir = tmp_path / "data" / "models"
+
+    monkeypatch.setattr(manager, "ROOT", tmp_path)
+    monkeypatch.setattr(manager, "PACKAGES_DIR", packages_dir)
+
+    package = manager.install_package_file(source)
+
+    assert package.name == "writer"
+    assert (packages_dir / "writer" / "LocalModel.yaml").is_file()
+
+
+def test_install_package_file_rejects_path_like_names(tmp_path, monkeypatch):
+    source = tmp_path / "LocalModel.yaml"
+    source.write_text("name: bad/name\nbase: qwen3.5:4b\n", encoding="utf-8")
+
+    monkeypatch.setattr(manager, "ROOT", tmp_path)
+    monkeypatch.setattr(manager, "PACKAGES_DIR", tmp_path / "data" / "models")
+
+    with pytest.raises(ValueError, match="simple folder name"):
+        manager.install_package_file(source)
+
+
 def test_package_messages_prepends_system_prompt():
     package = manager.LocalModelPackage(
         name="writer",
