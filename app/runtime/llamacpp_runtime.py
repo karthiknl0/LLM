@@ -101,6 +101,27 @@ class LlamaCppRuntime:
             "llama.cpp runtime does not delete models yet. Remove the .gguf file manually."
         )
 
+    def _completion_as_chat(self, model: str, response: dict[str, Any]) -> dict[str, Any]:
+        text = response["choices"][0].get("text", "")
+        return {
+            "model": model,
+            "message": {"role": "assistant", "content": text},
+            "done": True,
+            "raw": response,
+        }
+
+    def _completion_events_as_chat(self, model: str, response):
+        for part in response:
+            text = part.get("choices", [{}])[0].get("text", "")
+            if text:
+                yield {
+                    "model": model,
+                    "message": {"role": "assistant", "content": text},
+                    "done": False,
+                    "raw": part,
+                }
+        yield {"model": model, "message": {"role": "assistant", "content": ""}, "done": True}
+
     def chat(
         self,
         *,
@@ -116,7 +137,10 @@ class LlamaCppRuntime:
         template = params.pop("template", None)
         if template:
             prompt = format_chat_messages(messages, str(template))
-            return self.generate(model=model, prompt=prompt, stream=stream, options=params)
+            response = llm.create_completion(prompt=prompt, stream=stream, **params)
+            if not stream:
+                return self._completion_as_chat(model, response)
+            return self._completion_events_as_chat(model, response)
         response = llm.create_chat_completion(
             messages=messages,
             stream=stream,
