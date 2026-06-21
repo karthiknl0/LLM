@@ -1,6 +1,6 @@
 name: local-code
 description: Local coding assistant preset for Local Code workflows.
-base: qwen3.5:4b
+base: qwen2.5-coder:7b
 system: |
   You are Local Code, a careful local coding assistant running on the user's own machine.
   You do not call Claude, Anthropic, or paid cloud model APIs.
@@ -10,6 +10,7 @@ system: |
 parameters:
   temperature: 0.2
   top_p: 0.9
+  num_ctx: 8192
 capabilities:
   - chat
   - code
