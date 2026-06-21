@@ -23,13 +23,15 @@ from app.rag import ask_documents, index_documents
 from app.repo import add_repo
 from app.services.research import deep_research, research
 from app.session.evals import list_sets, run_eval
+from app.session.model_catalog import catalog_summary
 from app.session.modelstate import current_model, installed_models, set_model
 from app.session.promptlab import improve_prompt
 from app.session.status import run_checks
 from app.skills import list_skills
 from app.subagents import team_run
-from app.tools.file_ops import approve, list_pending, reject, show_diff
 from app.tools.screen import capture_and_analyze
+from app.ui import work_queue
+from app.ui.code_context import code_index_summary, index_project_for_code, instruction_summary, search_code_index
 from app.ui.models_tab import build_models_tab
 
 APP_CSS = """
@@ -107,8 +109,17 @@ def build_app() -> gr.Blocks:
 
         with gr.Tab("Agent"):
             gr.Markdown(
-                "The selected brain with tools. It can use documents, research, Python, media tools, and approval-gated file edits."
+                "The selected brain with tools. It now reads project instruction files and indexed code context for the selected project folder."
             )
+            agent_project = gr.Textbox(label="Active project folder", value=str(WORKSPACE_DIR))
+            with gr.Row():
+                agent_index_btn = gr.Button("Index project for code context", variant="primary")
+                agent_instructions_btn = gr.Button("Show project instructions")
+                agent_index_status_btn = gr.Button("Show code index status")
+            agent_context_out = gr.Markdown()
+            agent_index_btn.click(index_project_for_code, inputs=agent_project, outputs=agent_context_out)
+            agent_instructions_btn.click(instruction_summary, inputs=agent_project, outputs=agent_context_out)
+            agent_index_status_btn.click(code_index_summary, inputs=agent_project, outputs=agent_context_out)
             agent_chatbot = gr.Chatbot(type="messages", elem_classes=["aihub-chat"])
             agent_status = gr.Markdown("Ready")
             gr.ChatInterface(
@@ -119,7 +130,7 @@ def build_app() -> gr.Blocks:
                 show_progress="minimal",
                 additional_outputs=[agent_status],
                 additional_inputs=[
-                    gr.Textbox(label="Active project folder", value=str(WORKSPACE_DIR)),
+                    agent_project,
                     gr.Checkbox(label="Deep answer", value=False),
                     gr.Checkbox(label="Plan mode", value=False),
                 ],
@@ -134,6 +145,9 @@ def build_app() -> gr.Blocks:
 
         with gr.Tab("Chat"):
             gr.Markdown("Plain chat with the selected brain and optional persona.")
+            chat_catalog = gr.Markdown(catalog_summary())
+            chat_catalog_refresh = gr.Button("Refresh active model/package")
+            chat_catalog_refresh.click(catalog_summary, outputs=chat_catalog)
             plain_chatbot = gr.Chatbot(type="messages", elem_classes=["aihub-chat"])
             gr.ChatInterface(
                 fn=stream_chat,
@@ -149,6 +163,13 @@ def build_app() -> gr.Blocks:
             index_btn = gr.Button("Index documents", variant="primary")
             index_status = gr.Markdown()
             index_btn.click(index_documents, outputs=index_status)
+            with gr.Row():
+                code_project = gr.Textbox(label="Project folder for code index", value=str(WORKSPACE_DIR), scale=4)
+                code_index_btn = gr.Button("Index project for Local Code", scale=1)
+            code_search = gr.Textbox(label="Search code index", placeholder="runtime factory, model package, API endpoint")
+            code_context_out = gr.Markdown()
+            code_index_btn.click(index_project_for_code, inputs=code_project, outputs=code_context_out)
+            code_search.submit(search_code_index, inputs=[code_project, code_search], outputs=code_context_out)
             doc_question = gr.Textbox(label="Question about your documents")
             doc_answer = gr.Markdown()
             doc_question.submit(ask_documents, inputs=doc_question, outputs=doc_answer)
@@ -227,19 +248,19 @@ def build_app() -> gr.Blocks:
             skills_refresh.click(list_skills, outputs=skills_table)
 
         with gr.Tab("Approvals"):
-            gr.Markdown("File edits the agent proposed. Nothing is written until you approve it here.")
+            gr.Markdown("Agent and Local Code file changes are shown together. Use the full ID such as `agent:abc123` or `code:def456`.")
             approvals_refresh = gr.Button("Refresh", variant="primary")
-            approvals_table = gr.Dataframe(headers=["ID", "File", "Reason"], interactive=False)
-            approvals_refresh.click(list_pending, outputs=approvals_table)
+            approvals_table = gr.Dataframe(headers=["Source", "ID", "File", "Reason"], interactive=False)
+            approvals_refresh.click(work_queue.rows, outputs=approvals_table)
             approval_id = gr.Textbox(label="Edit ID")
             with gr.Row():
                 diff_btn = gr.Button("Show diff")
                 approve_btn = gr.Button("Approve & apply", variant="primary")
                 reject_btn = gr.Button("Reject")
             approval_out = gr.Markdown()
-            diff_btn.click(show_diff, inputs=approval_id, outputs=approval_out)
-            approve_btn.click(approve, inputs=approval_id, outputs=approval_out)
-            reject_btn.click(reject, inputs=approval_id, outputs=approval_out)
+            diff_btn.click(work_queue.show, inputs=approval_id, outputs=approval_out)
+            approve_btn.click(work_queue.accept, inputs=approval_id, outputs=approval_out)
+            reject_btn.click(work_queue.drop, inputs=approval_id, outputs=approval_out)
 
         with gr.Tab("Prompt Helper"):
             prompt_in = gr.Textbox(label="Your draft prompt", lines=5)
