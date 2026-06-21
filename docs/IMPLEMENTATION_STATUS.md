@@ -55,6 +55,17 @@ Implemented a Claude Code-style local workflow powered by local models:
 - project instruction discovery for `CLAUDE.md`, `AGENTS.md`, `.agents.md`, and `.local-ai.md`
 - no Claude, Anthropic, or paid cloud API calls
 
+### UI
+
+Implemented a refactored Gradio shell with a dedicated Models tab:
+
+- `app/ui/models_tab.py`
+- runtime model table
+- LocalModel package table rows
+- active model/package summary
+- set-active control
+- smoke test for app import
+
 ### API
 
 Implemented local API server with:
@@ -150,6 +161,8 @@ Added focused tests for:
 - Local Code project instruction discovery and parser behavior
 - Local Code project indexing and edit queue behavior
 - model/package catalog helpers
+- Models tab helper behavior
+- Gradio app shell import
 
 CI runs lightweight tests without requiring large ML/UI/media dependencies.
 
@@ -175,6 +188,5 @@ These are not required for the current roadmap to be usable:
 
 1. Add llama.cpp embedding support for RAG.
 2. Add API authentication for non-localhost deployments.
-3. Add full Gradio Models tab wiring on top of the tested model catalog helpers.
-4. Add release packaging and versioned changelog.
-5. Add more example package files under `examples/`.
+3. Add release packaging and versioned changelog.
+4. Add more example package files under `examples/`.
