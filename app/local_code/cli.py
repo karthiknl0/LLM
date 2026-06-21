@@ -7,6 +7,8 @@ import sys
 from collections.abc import Iterable
 from pathlib import Path
 
+from app.local_code.editing import apply_edit, list_edits, propose_file, reject_edit, show_edit
+from app.local_code.indexer import build_project_index, format_index_context, search_project_index
 from app.local_code.instructions import collect_project_instructions, format_instructions
 from app.model_packages import package_messages, package_options, resolve_model_or_package
 from app.runtime import runtime
@@ -26,9 +28,13 @@ def _messages(prompt: str, project: Path) -> tuple[str, list[dict[str, str]], ob
     runtime_model, package = resolve_model_or_package(requested)
     runtime_model = runtime_model or requested
     instruction_text = format_instructions(collect_project_instructions(project))
-    system = LOCAL_CODE_SYSTEM
+    index_text = format_index_context(search_project_index(project, prompt))
+    system_parts = [LOCAL_CODE_SYSTEM]
     if instruction_text:
-        system = f"{system}\n\n{instruction_text}"
+        system_parts.append(instruction_text)
+    if index_text:
+        system_parts.append(index_text)
+    system = "\n\n".join(system_parts)
     messages = package_messages(
         package,
         [{"role": "user", "content": prompt}],
@@ -42,7 +48,7 @@ def cmd_ask(args: argparse.Namespace) -> int:
         set_model(args.model)
     prompt = " ".join(args.prompt).strip()
     if not prompt:
-        print("Usage: local-code ask <prompt>", file=sys.stderr)
+        print("Usage: local-ai code ask <prompt>", file=sys.stderr)
         return 2
     runtime_model, messages, package = _messages(prompt, Path(args.project))
     options = package_options(package)
@@ -120,9 +126,63 @@ def cmd_instructions(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_index(args: argparse.Namespace) -> int:
+    data = build_project_index(Path(args.project))
+    print(f"Indexed {len(data['files'])} files from {data['project']}")
+    return 0
+
+
+def cmd_search(args: argparse.Namespace) -> int:
+    query = " ".join(args.query).strip()
+    if not query:
+        print("Usage: local-ai code search <query>", file=sys.stderr)
+        return 2
+    matches = search_project_index(Path(args.project), query, limit=args.limit)
+    if not matches:
+        print("No indexed matches. Run: local-ai code index")
+        return 0
+    for item in matches:
+        print(f"{item.path}\t{item.size} bytes")
+    return 0
+
+
+def cmd_propose(args: argparse.Namespace) -> int:
+    content = Path(args.content_file).read_text(encoding="utf-8")
+    edit = propose_file(Path(args.project), args.file, content, reason=args.reason or "")
+    print(f"Queued edit {edit.id}: {edit.path}")
+    print("Review with: local-ai code diff", edit.id)
+    print("Apply with:  local-ai code apply", edit.id)
+    return 0
+
+
+def cmd_edits(_args: argparse.Namespace) -> int:
+    edits = list_edits()
+    if not edits:
+        print("No pending Local Code edits.")
+        return 0
+    for edit in edits:
+        print(f"{edit.id}\t{edit.path}\t{edit.reason}")
+    return 0
+
+
+def cmd_diff(args: argparse.Namespace) -> int:
+    print(show_edit(args.edit_id))
+    return 0
+
+
+def cmd_apply(args: argparse.Namespace) -> int:
+    print(apply_edit(args.edit_id))
+    return 0
+
+
+def cmd_reject(args: argparse.Namespace) -> int:
+    print(reject_edit(args.edit_id))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="local-code",
+        prog="local-ai code",
         description="Local Claude Code-style CLI powered by local models",
     )
     parser.add_argument("--project", default=".", help="project directory, default: current directory")
@@ -142,6 +202,35 @@ def build_parser() -> argparse.ArgumentParser:
 
     instructions = sub.add_parser("instructions", help="list discovered project instruction files")
     instructions.set_defaults(func=cmd_instructions)
+
+    index = sub.add_parser("index", help="index project files for local-code context")
+    index.set_defaults(func=cmd_index)
+
+    search = sub.add_parser("search", help="search the Local Code project index")
+    search.add_argument("query", nargs=argparse.REMAINDER)
+    search.add_argument("--limit", type=int, default=8)
+    search.set_defaults(func=cmd_search)
+
+    propose = sub.add_parser("propose", help="queue a complete-file replacement for approval")
+    propose.add_argument("--file", required=True, help="project-relative file to change")
+    propose.add_argument("--content-file", required=True, help="file containing proposed new content")
+    propose.add_argument("--reason", default="", help="reason shown in the approval queue")
+    propose.set_defaults(func=cmd_propose)
+
+    edits = sub.add_parser("edits", help="list pending Local Code edits")
+    edits.set_defaults(func=cmd_edits)
+
+    diff = sub.add_parser("diff", help="show one pending edit diff")
+    diff.add_argument("edit_id")
+    diff.set_defaults(func=cmd_diff)
+
+    apply_cmd = sub.add_parser("apply", help="apply one approved edit")
+    apply_cmd.add_argument("edit_id")
+    apply_cmd.set_defaults(func=cmd_apply)
+
+    reject = sub.add_parser("reject", help="reject one pending edit")
+    reject.add_argument("edit_id")
+    reject.set_defaults(func=cmd_reject)
 
     return parser
 
