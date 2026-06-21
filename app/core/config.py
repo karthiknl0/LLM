@@ -33,6 +33,8 @@ SKILLS_DIR = ROOT / "data" / "skills"        # functions the agent taught itself
 PLAYBOOKS_DIR = ROOT / "data" / "playbooks"  # authored reusable workflows
 BACKUPS_DIR = ROOT / "data" / "backups"      # originals of approved file edits
 GGUF_MODELS_DIR = ROOT / "data" / "gguf"     # direct GGUF models for llama.cpp runtime
+LOCAL_CODE_INDEX_DIR = ROOT / "data" / "local_code_index"
+LOCAL_CODE_EDITS_DIR = ROOT / "data" / "local_code_edits"
 
 # --- llama.cpp runtime settings ---
 LLAMACPP_N_CTX = 4096
@@ -61,5 +63,6 @@ for _dir in (
     DOCUMENTS_DIR, VECTOR_DB_DIR, OUTPUTS_DIR,
     CHATLOG_DIR, TRAINING_DIR, WORKSPACE_DIR, PERSONAS_DIR, SKILLS_DIR,
     PLAYBOOKS_DIR, BACKUPS_DIR, GGUF_MODELS_DIR,
+    LOCAL_CODE_INDEX_DIR, LOCAL_CODE_EDITS_DIR,
 ):
     _dir.mkdir(parents=True, exist_ok=True)
