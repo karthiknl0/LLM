@@ -11,6 +11,15 @@ def test_cli_parser_accepts_core_commands():
     assert parser.parse_args(["api", "--port", "11435"]).port == 11435
 
 
+def test_cli_parser_accepts_create_command():
+    parser = cli.build_parser()
+    args = parser.parse_args(["create", "-f", "LocalModel.yaml", "--activate"])
+
+    assert args.command == "create"
+    assert args.file == "LocalModel.yaml"
+    assert args.activate is True
+
+
 def test_run_requires_prompt(capsys):
     result = cli.main(["run"])
 
